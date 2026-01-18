@@ -1,0 +1,107 @@
+@import './styles/print.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Hiragino Sans', sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: background 0.3s, color 0.3s;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.error-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 16px;
+  background: var(--danger-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 100;
+}
+
+.error-banner button {
+  padding: 4px 12px;
+  border: 1px solid white;
+  border-radius: 4px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.error-banner button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Collapse Toggle Button */
+/* 折りたたみボタン: グリッド領域の下部右端に配置 */
+.collapse-toggle {
+  position: fixed;
+  left: 380px;
+  bottom: 20px;
+  width: 32px;
+  height: 24px;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  z-index: 50;
+  transition: left 0.3s, background 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.collapse-toggle:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.collapse-toggle.collapsed {
+  left: 8px;
+}

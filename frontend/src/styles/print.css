@@ -1,0 +1,106 @@
+/* Print Mode Styles */
+
+/* 印刷モード時はアプリ全体の背景を白に */
+.print-mode {
+    background-color: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* ヘッダー、サイドバー（もしあれば）、折りたたみボタンを非表示 */
+.print-mode .collapse-toggle {
+    display: none !important;
+}
+
+/* Ganttチャート内のグリッド（左側のタスクリスト）を非表示 */
+.print-mode .gantt_grid,
+.print-mode .gantt_grid_scale,
+.print-mode .gantt_grid_data,
+.print-mode .gantt_grid_resizer {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* タイムライン（チャート部分）を全幅に - 幅はDHTMLXの計算に任せるためwidth: 100%は強制しない */
+.print-mode .gantt_task,
+.print-mode .gantt_task_scale,
+.print-mode .gantt_data_area {
+    border-left: none !important;
+}
+
+/* スクロールバー表示制御 - 横スクロールは許可する */
+.print-mode .gantt_ver_scroll {
+    display: none !important;
+}
+
+/* 印刷時は背景色などを調整 */
+.print-mode .gantt_container {
+    background-color: white !important;
+    border: none !important;
+}
+
+/* タスクバーのスタイル調整（必要であれば） */
+.print-mode .gantt_task_line {
+    border-color: #000 !important;
+}
+
+/* リンク線など */
+.print-mode .gantt_line_wrapper div {
+    background-color: #666 !important;
+}
+
+/* Weekend表示を薄く */
+.print-mode .weekend {
+    background: #f5f5f5 !important;
+}
+
+/* 今日のマーカー */
+.print-mode .today {
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+/* 印刷モード時は全てのタスクタイプで右側のテキストを表示 */
+.print-mode .gantt_side_content {
+    display: block !important;
+    color: black !important;
+    font-size: 11px !important;
+    overflow: visible !important;
+}
+
+/* @media printで印刷時の挙動も制御 */
+@media print {
+    @page {
+        size: landscape;
+        margin: 1cm;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+
+    #app.print-mode,
+    #app.print-mode * {
+        visibility: visible;
+    }
+
+    #app.print-mode {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    /* 上記の.print-modeクラスと同じスタイルを適用 */
+    .header-container,
+    header,
+    .collapse-toggle,
+    .gantt_grid,
+    .gantt_grid_scale,
+    .gantt_grid_data,
+    .gantt_grid_resizer,
+    .gantt_ver_scroll,
+    .gantt_hor_scroll {
+        display: none !important;
+    }
+}

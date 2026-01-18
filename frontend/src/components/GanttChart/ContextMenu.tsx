@@ -1,0 +1,229 @@
+import { useEffect, useRef } from 'react';
+
+export interface ContextMenuItem {
+  label?: string;
+  icon?: string;
+  action?: () => void;
+  danger?: boolean;
+  divider?: boolean;
+  submenu?: ContextMenuItem[];
+}
+
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  items: ContextMenuItem[];
+  onClose: () => void;
+}
+
+export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Adjust position to keep menu in viewport
+  useEffect(() => {
+    if (menuRef.current) {
+      const menu = menuRef.current;
+      const rect = menu.getBoundingClientRect();
+
+      let adjustedX = x;
+      let adjustedY = y;
+
+      if (x + rect.width > window.innerWidth) {
+        adjustedX = window.innerWidth - rect.width - 10;
+      }
+      if (y + rect.height > window.innerHeight) {
+        adjustedY = window.innerHeight - rect.height - 10;
+      }
+
+      menu.style.left = `${adjustedX}px`;
+      menu.style.top = `${adjustedY}px`;
+    }
+  }, [x, y]);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  const handleItemClick = (item: ContextMenuItem) => {
+    if (item.action && !item.submenu) {
+      item.action();
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      ref={menuRef}
+      className="gantt-context-menu"
+      style={{ left: x, top: y }}
+    >
+      {items.map((item, index) => {
+        if (item.divider) {
+          return <div key={index} className="gantt-context-menu-divider" />;
+        }
+
+        return (
+          <div
+            key={index}
+            className={`gantt-context-menu-item ${item.danger ? 'danger' : ''} ${item.submenu ? 'gantt-context-menu-submenu' : ''}`}
+            onClick={() => handleItemClick(item)}
+          >
+            {item.icon && <span className="icon">{item.icon}</span>}
+            <span>{item.label}</span>
+            {item.submenu && (
+              <div className="gantt-context-menu-submenu-items">
+                {item.submenu.map((subItem, subIndex) => (
+                  <div
+                    key={subIndex}
+                    className={`gantt-context-menu-item ${subItem.danger ? 'danger' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (subItem.action) {
+                        subItem.action();
+                        onClose();
+                      }
+                    }}
+                  >
+                    {subItem.icon && <span className="icon">{subItem.icon}</span>}
+                    <span>{subItem.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+import type { TaskKind } from '../../types/gantt';
+
+// Owner options
+const owners = [
+  { key: 0, label: '自分' },
+  { key: 10, label: '待' },
+  { key: 20, label: 'サイン取' },
+  { key: 30, label: '他' },
+];
+
+// Predefined menu items for tasks
+export function getTaskContextMenuItems(
+  taskId: number,
+  _taskKind: number,
+  callbacks: {
+    onEdit: (id: number) => void;
+    onDelete: (id: number) => void;
+    onSetProgress: (id: number, progress: number) => void;
+    onSetOwner: (id: number, ownerId: number) => void;
+    onAddChild: (parentId: number, kind: TaskKind) => void;
+    onCopy: (id: number) => void;
+  }
+): ContextMenuItem[] {
+  return [
+    {
+      label: 'タスク編集',
+      icon: '✏️',
+      action: () => callbacks.onEdit(taskId),
+    },
+    { divider: true },
+    {
+      label: '進捗設定',
+      icon: '📊',
+      submenu: [
+        {
+          label: '0%',
+          action: () => callbacks.onSetProgress(taskId, 0),
+        },
+        {
+          label: '25%',
+          action: () => callbacks.onSetProgress(taskId, 0.25),
+        },
+        {
+          label: '50%',
+          action: () => callbacks.onSetProgress(taskId, 0.5),
+        },
+        {
+          label: '75%',
+          action: () => callbacks.onSetProgress(taskId, 0.75),
+        },
+        {
+          label: '100%',
+          action: () => callbacks.onSetProgress(taskId, 1),
+        },
+      ],
+    },
+    {
+      label: 'オーナー変更',
+      icon: '👤',
+      submenu: owners.map((owner) => ({
+        label: owner.label,
+        action: () => callbacks.onSetOwner(taskId, owner.key),
+      })),
+    },
+    { divider: true },
+    {
+      label: '子プロジェクト追加',
+      icon: '📁',
+      action: () => callbacks.onAddChild(taskId, 2),
+    },
+    {
+      label: '子タスク追加',
+      icon: '⏰',
+      action: () => callbacks.onAddChild(taskId, 1),
+    },
+    { divider: true },
+    {
+      label: 'コピー',
+      icon: '📋',
+      action: () => callbacks.onCopy(taskId),
+    },
+    { divider: true },
+    {
+      label: '削除',
+      icon: '🗑️',
+      danger: true,
+      action: () => callbacks.onDelete(taskId),
+    },
+  ];
+}
+
+// Menu items for empty area
+export function getEmptyAreaContextMenuItems(
+  date: Date | null,
+  callbacks: {
+    onAddProject: (date: Date | null) => void;
+    onAddTask: (date: Date | null) => void;
+  }
+): ContextMenuItem[] {
+  return [
+    {
+      label: '新規プロジェクト追加',
+      icon: '📁',
+      action: () => callbacks.onAddProject(date),
+    },
+    {
+      label: '新規タスク追加',
+      icon: '⏰',
+      action: () => callbacks.onAddTask(date),
+    },
+  ];
+}
