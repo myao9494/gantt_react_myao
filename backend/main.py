@@ -1,5 +1,6 @@
 import csv
 import io
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List
 
@@ -12,10 +13,21 @@ from models import Task as TaskModel, Link as LinkModel
 from routers import tasks, links
 from schemas import ImportResponse
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler."""
+    # Startup
+    init_db()
+    yield
+    # Shutdown (nothing to clean up)
+
+
 app = FastAPI(
     title="Gantt Chart API",
     description="API for Gantt Chart application",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS configuration - allow all origins (個人利用のため無制限)
@@ -30,12 +42,6 @@ app.add_middleware(
 # Include routers
 app.include_router(tasks.router)
 app.include_router(links.router)
-
-
-@app.on_event("startup")
-def startup():
-    """Initialize database on startup."""
-    init_db()
 
 
 @app.get("/")
@@ -114,7 +120,7 @@ async def import_csv(file: UploadFile = File(...)):
         # Try to decode with BOM
         try:
             text = content.decode("utf-8-sig")
-        except:
+        except UnicodeDecodeError:
             text = content.decode("utf-8")
 
         reader = csv.DictReader(io.StringIO(text))

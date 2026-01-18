@@ -8,6 +8,15 @@ import {
   getEmptyAreaContextMenuItems,
   type ContextMenuItem,
 } from './ContextMenu';
+import {
+  OWNERS,
+  KIND_TASKS,
+  COLOR_OPTIONS,
+  ZOOM_CONFIG,
+  getTaskKindClass,
+  formatDateString,
+  formatEditDate,
+} from '../../constants/gantt';
 import '../../styles/gantt.css';
 
 interface GanttChartProps {
@@ -17,13 +26,11 @@ interface GanttChartProps {
   gridCollapsed?: boolean;
   displaySize?: number;
   filter?: TaskFilter;
-  expandAllTrigger?: number;  // インクリメントで展開をトリガー
-  collapseAllTrigger?: number;  // インクリメントで折りたたみをトリガー
+  expandAllTrigger?: number;
+  collapseAllTrigger?: number;
   onTaskUpdate?: (id: number, task: Partial<Task>) => void;
   onTaskCreate?: (task: Partial<Task>) => void;
   onTaskDelete?: (id: number) => void;
-  onLinkCreate?: (link: Omit<Link, 'id'>) => void;
-  onLinkDelete?: (id: number) => void;
   onTaskClone?: (id: number) => void;
   isPrintMode?: boolean;
 }
@@ -33,83 +40,6 @@ interface ContextMenuState {
   x: number;
   y: number;
   items: ContextMenuItem[];
-}
-
-// Owner mapping (matching original app)
-const owners = [
-  { key: 0, label: '自分' },
-  { key: 10, label: '待' },
-  { key: 20, label: 'サイン取' },
-  { key: 30, label: '他' },
-];
-
-// Kind task mapping
-const kindTasks = [
-  { key: '1', label: 'task' },
-  { key: '2', label: 'pro' },
-  { key: '3', label: 'MS' },
-];
-
-// Color options
-const colorOptions = [
-  { key: '', label: 'Default' },
-  { key: '#4B008270', label: 'Indigo' },
-  { key: '#FFFFF070', label: 'Ivory' },
-  { key: '#F0E68C70', label: 'Khaki' },
-  { key: '#B0C4DE70', label: 'LightSteelBlue' },
-  { key: '#32CD3270', label: 'LimeGreen' },
-  { key: '#7B68EE70', label: 'MediumSlateBlue' },
-  { key: '#FFA50070', label: 'Orange' },
-  { key: '#FF450070', label: 'OrangeRed' },
-];
-
-// Zoom configuration
-const zoomConfig = {
-  levels: [
-    {
-      name: 'day',
-      scale_height: 60,
-      min_column_width: 80,
-      scales: [
-        { unit: 'month', format: '%F, %Y' },
-        { unit: 'day', step: 1, format: '%j %D' },
-      ],
-    },
-    {
-      name: 'month',
-      scale_height: 60,
-      min_column_width: 30,
-      scales: [
-        { unit: 'month', format: '%F, %Y' },
-        { unit: 'day', step: 1, format: '%j' },
-        { unit: 'day', step: 1, format: '%D' },
-      ],
-    },
-    {
-      name: 'quarter',
-      scale_height: 70,
-      min_column_width: 26,
-      scales: [
-        { unit: 'year', step: 1, format: '%Y' },
-        { unit: 'month', format: '%F' },
-        { unit: 'week', format: '#%W' },
-      ],
-    },
-    {
-      name: 'year',
-      scale_height: 60,
-      min_column_width: 60,
-      scales: [
-        { unit: 'year', step: 1, format: '%Y' },
-        { unit: 'month', format: '%F' },
-      ],
-    },
-  ],
-};
-
-function findOwnerLabel(ownerId: number): string {
-  const owner = owners.find((o) => o.key === ownerId);
-  return owner ? owner.label : '自分';
 }
 
 // Get task hierarchy path
@@ -147,8 +77,6 @@ export function GanttChart({
   onTaskUpdate,
   onTaskCreate,
   onTaskDelete,
-  // onLinkCreate,
-  // onLinkDelete,
   onTaskClone,
   isPrintMode = false,
 }: GanttChartProps) {
@@ -168,18 +96,6 @@ export function GanttChart({
     y: 0,
     items: [],
   });
-
-  // Clone task handler - exposed to window for button onclick
-  useEffect(() => {
-    (window as any).cloneTask = (id: number) => {
-      if (onTaskClone) {
-        onTaskClone(id);
-      }
-    };
-    return () => {
-      delete (window as any).cloneTask;
-    };
-  }, [onTaskClone]);
 
   // Context menu callbacks
   const handleEditTask = useCallback((taskId: number) => {
@@ -229,13 +145,10 @@ export function GanttChart({
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + 7);
 
-      const formatDate = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 00:00:00`;
-
       const newTask: Partial<Task> = {
         text: kind === 2 ? '新規プロジェクト' : '新規タスク',
-        start_date: formatDate(today),
-        end_date: formatDate(endDate),
+        start_date: formatDateString(today),
+        end_date: formatDateString(endDate),
         duration: 7,
         progress: 0,
         parent: parentId,
@@ -265,13 +178,10 @@ export function GanttChart({
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 7);
 
-      const formatDate = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 00:00:00`;
-
       const newTask: Partial<Task> = {
         text: kind === 2 ? '新規プロジェクト' : '新規タスク',
-        start_date: formatDate(startDate),
-        end_date: formatDate(endDate),
+        start_date: formatDateString(startDate),
+        end_date: formatDateString(endDate),
         duration: 7,
         progress: 0,
         parent: 0,
@@ -328,10 +238,10 @@ export function GanttChart({
     gantt.config.end_date = oneYearLater;
 
     // Register server lists for lightbox
-    gantt.serverList('kind_task', kindTasks);
-    gantt.serverList('owner_id', owners);
-    gantt.serverList('color', colorOptions);
-    gantt.serverList('textColor', colorOptions);
+    gantt.serverList('kind_task', KIND_TASKS.map(k => ({ key: k.key, label: k.label })));
+    gantt.serverList('owner_id', OWNERS.map(o => ({ key: o.key, label: o.label })));
+    gantt.serverList('color', COLOR_OPTIONS.map(c => ({ key: c.key, label: c.label })));
+    gantt.serverList('textColor', COLOR_OPTIONS.map(c => ({ key: c.key, label: c.label })));
 
     // Lightbox configuration (matching original app)
     (gantt.config.lightbox as any).sections = [
@@ -412,16 +322,7 @@ export function GanttChart({
 
     // Templates
     gantt.templates.task_class = (_start: Date, _end: Date, task: any) => {
-      switch (String(task.kind_task)) {
-        case '1':
-          return 'task';
-        case '2':
-          return 'pro';
-        case '3':
-          return 'ms';
-        default:
-          return 'task';
-      }
+      return getTaskKindClass(task.kind_task);
     };
 
     gantt.templates.rightside_text = (_start: Date, _end: Date, task: any) => {
@@ -498,24 +399,21 @@ export function GanttChart({
     // タスク更新時にedit_dateを更新し、バックエンドに保存
     gantt.attachEvent('onAfterTaskUpdate', (id: any, task: any) => {
       const today = new Date();
-      const formatDate = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+      const todayStr = formatEditDate(today);
       if (task.edit_date) {
-        if (!task.edit_date.split(',').includes(formatDate)) {
-          task.edit_date = task.edit_date + ',' + formatDate;
+        if (!task.edit_date.split(',').includes(todayStr)) {
+          task.edit_date = task.edit_date + ',' + todayStr;
         }
       } else {
-        task.edit_date = formatDate;
+        task.edit_date = todayStr;
       }
 
       // API経由でバックエンドに保存
       if (onTaskUpdateRef.current && typeof id === 'number') {
-        const formatDateStr = (d: Date) =>
-          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 00:00:00`;
-
         onTaskUpdateRef.current(id, {
           text: task.text,
-          start_date: task.start_date instanceof Date ? formatDateStr(task.start_date) : task.start_date,
-          end_date: task.end_date instanceof Date ? formatDateStr(task.end_date) : task.end_date,
+          start_date: task.start_date instanceof Date ? formatDateString(task.start_date) : task.start_date,
+          end_date: task.end_date instanceof Date ? formatDateString(task.end_date) : task.end_date,
           duration: task.duration,
           progress: task.progress,
           parent: task.parent || 0,
@@ -594,7 +492,7 @@ export function GanttChart({
 
     // Initialize zoom
     if (gantt.ext && gantt.ext.zoom) {
-      gantt.ext.zoom.init(zoomConfig as any);
+      gantt.ext.zoom.init(ZOOM_CONFIG as any);
       gantt.ext.zoom.setLevel(timeScale);
     }
 

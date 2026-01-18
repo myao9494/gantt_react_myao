@@ -4,6 +4,7 @@ import { Header } from './components/Header/Header';
 import { GanttChart } from './components/GanttChart/GanttChart';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import * as api from './services/api';
+import { getOwnerLabel, formatDateString } from './constants/gantt';
 import type { Task, Link, TaskFilter } from './types/gantt';
 import './styles/variables.css';
 import './App.css';
@@ -91,21 +92,6 @@ function AppContent() {
     if (result.success && result.data) {
       const deletedIds = [result.data.deleted_id, ...result.data.deleted_children];
       setTasks((prev) => prev.filter((t) => !deletedIds.includes(t.id)));
-    }
-  };
-
-  // Link handlers
-  const handleLinkCreate = async (linkData: Omit<Link, 'id'>) => {
-    const result = await api.createLink(linkData);
-    if (result.success && result.data) {
-      setLinks((prev) => [...prev, result.data!]);
-    }
-  };
-
-  const handleLinkDelete = async (id: number) => {
-    const result = await api.deleteLink(id);
-    if (result.success) {
-      setLinks((prev) => prev.filter((l) => l.id !== id));
     }
   };
 
@@ -211,18 +197,10 @@ function AppContent() {
       const newEndDate = new Date(targetStart);
       newEndDate.setDate(newEndDate.getDate() + duration);
 
-      // ローカル日付でフォーマット（UTCではなくローカルタイムゾーン）
-      const formatLocalDate = (d: Date) => {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day} 00:00:00`;
-      };
-
       // API経由で更新
       await api.updateTask(task.id, {
-        start_date: formatLocalDate(targetStart),
-        end_date: formatLocalDate(newEndDate),
+        start_date: formatDateString(targetStart),
+        end_date: formatDateString(newEndDate),
       });
 
       modifiedCount++;
@@ -252,14 +230,6 @@ function AppContent() {
   }, [setTaskListCollapsed]);
 
   // Filter tasks
-  // オーナーIDからラベルへのマッピング
-  const ownerLabels: Record<number, string> = {
-    0: '自分',
-    10: '待',
-    20: 'サイン取',
-    30: '他',
-  };
-
   const filteredTasks = tasks.filter((task) => {
     // Search text and searchProject filters are now handled by gantt's onBeforeTaskDisplay
     // This ensures parent tasks remain visible when children match the search
@@ -274,7 +244,7 @@ function AppContent() {
 
     // Owner filter
     if (filter.owner && filter.owner !== '') {
-      const taskOwnerLabel = ownerLabels[task.owner_id] || '自分';
+      const taskOwnerLabel = getOwnerLabel(task.owner_id);
       if (taskOwnerLabel !== filter.owner) {
         return false;
       }
@@ -351,8 +321,6 @@ function AppContent() {
           onTaskUpdate={handleTaskUpdate}
           onTaskCreate={handleTaskCreate}
           onTaskDelete={handleTaskDelete}
-          onLinkCreate={handleLinkCreate}
-          onLinkDelete={handleLinkDelete}
           onTaskClone={handleTaskClone}
           isPrintMode={isPrintMode}
         />

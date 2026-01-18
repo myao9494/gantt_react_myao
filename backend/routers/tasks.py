@@ -16,7 +16,7 @@ def calculate_duration(start_date: str, end_date: str) -> int:
         start = datetime.strptime(start_date.split(" ")[0], "%Y-%m-%d")
         end = datetime.strptime(end_date.split(" ")[0], "%Y-%m-%d")
         return max(1, (end - start).days)
-    except:
+    except (ValueError, AttributeError, IndexError):
         return 1
 
 

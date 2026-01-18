@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import type { TaskKind } from '../../types/gantt';
+import { OWNERS } from '../../constants/gantt';
 
 export interface ContextMenuItem {
   label?: string;
@@ -115,16 +117,6 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   );
 }
 
-import type { TaskKind } from '../../types/gantt';
-
-// Owner options
-const owners = [
-  { key: 0, label: '自分' },
-  { key: 10, label: '待' },
-  { key: 20, label: 'サイン取' },
-  { key: 30, label: '他' },
-];
-
 // Predefined menu items for tasks
 export function getTaskContextMenuItems(
   taskId: number,
@@ -174,7 +166,7 @@ export function getTaskContextMenuItems(
     {
       label: 'オーナー変更',
       icon: '👤',
-      submenu: owners.map((owner) => ({
+      submenu: OWNERS.map((owner) => ({
         label: owner.label,
         action: () => callbacks.onSetOwner(taskId, owner.key),
       })),
