@@ -23,7 +23,7 @@ pnpm install
 ```bash
 pnpm dev
 ```
-`http://localhost:5173` で起動します。バックエンドAPI (`http://localhost:8000`) が起動している必要があります。
+`http://localhost:5172` で起動します。バックエンドAPI (`http://localhost:8000`) が起動している必要があります。
 
 ### ビルド
 

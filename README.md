@@ -77,7 +77,7 @@ pnpm install
 pnpm dev
 ```
 
-- 開発サーバー: http://localhost:5173
+- 開発サーバー: http://localhost:5172
 
 ## 使い方
 
