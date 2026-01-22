@@ -17,7 +17,7 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
-frontend/dist/
+# frontend/dist/
 frontend/node_modules/
 frontend/coverage/
 
