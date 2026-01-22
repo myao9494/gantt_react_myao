@@ -1,7 +1,6 @@
 #!/bin/bash
 
 BACKEND_PORT=8000
-FRONTEND_PORT=5172
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -26,38 +25,25 @@ echo "-----------------------------------"
 echo "Cleaning up ports..."
 echo "-----------------------------------"
 kill_port $BACKEND_PORT
-kill_port $FRONTEND_PORT
 
 echo ""
 echo "-----------------------------------"
-echo "Starting Backend..."
+echo "Starting Backend (Serving Frontend)..."
 echo "-----------------------------------"
 cd backend
 uv run uvicorn main:app --reload --host 0.0.0.0 --port $BACKEND_PORT &
 BACKEND_PID=$!
 cd ..
 
-# Wait a bit for backend
-sleep 2
-
-echo ""
-echo "-----------------------------------"
-echo "Starting Frontend..."
-echo "-----------------------------------"
-cd frontend
-npm run dev &
-FRONTEND_PID=$!
-cd ..
-
 echo ""
 echo -e "${GREEN}Application started!${NC}"
 echo "Backend PID: $BACKEND_PID"
-echo "Frontend PID: $FRONTEND_PID"
+echo "Access URL: http://localhost:$BACKEND_PORT"
 echo ""
-echo "Press Ctrl+C to stop both servers."
+echo "Press Ctrl+C to stop the server."
 
-# Trap to kill both processes when script exits
-trap "echo 'Stopping servers...'; kill $BACKEND_PID $FRONTEND_PID; exit" EXIT
+# Trap to kill process when script exits
+trap "echo 'Stopping server...'; kill $BACKEND_PID; exit" EXIT
 
-# Wait for processes
-wait $BACKEND_PID $FRONTEND_PID
+# Wait for process
+wait $BACKEND_PID

@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List
 
-from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
 
 from database import init_db, SessionLocal
 from models import Task as TaskModel, Link as LinkModel
@@ -44,10 +44,33 @@ app.include_router(tasks.router)
 app.include_router(links.router)
 
 
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint."""
+    return {"status": "ok", "version": "1.0.0"}
+
+
+# Serve Frontend (SPA)
+# Place this at the end to ensure API routes take precedence
+frontend_dist = os.path.join(os.path.dirname(__file__), "../frontend/dist")
+
+if os.path.isdir(frontend_dist):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Check if file exists in dist (e.g. vite.svg, favicon.ico)
+        file_path = os.path.join(frontend_dist, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # Fallback to index.html for SPA routing
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
 @app.get("/")
-def root():
-    """Root endpoint."""
-    return {"message": "Gantt Chart API", "version": "1.0.0"}
+async def serve_root():
+    if os.path.isdir(frontend_dist):
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+    return {"message": "Gantt Chart API (Frontend not found)"}
 
 
 @app.get("/api/export/csv")
