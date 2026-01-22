@@ -64,3 +64,12 @@ backend/.venv/
 # Project Specific
 # Add any project specific ignores here
 backend/gantt.db
+
+# Security / Personal Data
+original_app/
+sample_data/
+*.csv
+*.sql
+*.log
+*.sqlite
+*.db
