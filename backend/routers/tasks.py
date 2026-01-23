@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Task as TaskModel, Link as LinkModel
-from schemas import Task, TaskCreate, TaskUpdate, GanttData, DeleteResponse
+from schemas import Task, TaskCreate, TaskUpdate, GanttData, DeleteResponse, TaskReorderRequest
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -196,3 +196,29 @@ def expand_all():
 def collapse_all():
     """Collapse all tasks (handled on frontend)."""
     return {"message": "Collapse all tasks"}
+
+
+@router.post("/reorder")
+def reorder_tasks(request: TaskReorderRequest, db: Session = Depends(get_db)):
+    """Reorder tasks in batch."""
+    try:
+        # Create a mapping of id -> item for quick lookup
+        updates = {item.id: item for item in request.items}
+        
+        # Get all affected tasks
+        tasks = db.query(TaskModel).filter(TaskModel.id.in_(updates.keys())).all()
+        
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        for task in tasks:
+            update = updates[task.id]
+            task.sortorder = update.sortorder
+            task.parent = update.parent
+            task.updated_at = now
+            
+        db.commit()
+        return {"status": "success", "updated_count": len(tasks)}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+

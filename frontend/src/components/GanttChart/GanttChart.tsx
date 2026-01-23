@@ -8,6 +8,7 @@ import {
   getEmptyAreaContextMenuItems,
   type ContextMenuItem,
 } from './ContextMenu';
+import { reorderTasks } from '../../services/api';
 import {
   OWNERS,
   KIND_TASKS,
@@ -96,6 +97,10 @@ export function GanttChart({
     y: 0,
     items: [],
   });
+
+  // Batch move loop prevention
+  const ignoreMoveEvent = useRef(false);
+  const isInternalChange = useRef(false);
 
   // Context menu callbacks
   const handleEditTask = useCallback((taskId: number) => {
@@ -221,6 +226,7 @@ export function GanttChart({
     gantt.config.open_tree_initially = true;
     gantt.config.keyboard_navigation_cells = true;
     gantt.config.row_height = 27;
+    gantt.config.multiselect = true;
 
     // Undo config
     gantt.config.undo = true;
@@ -397,6 +403,36 @@ export function GanttChart({
 
     // Update edit_date on task update and save to backend
     // タスク更新時にedit_dateを更新し、バックエンドに保存
+    // Helper to save task to backend
+    const saveTask = (id: string | number, task: any) => {
+      if (onTaskUpdateRef.current && typeof Number(id) === 'number') {
+        // Prevent undo stack clearing on re-render
+        isInternalChange.current = true;
+
+        const numericId = Number(id);
+        onTaskUpdateRef.current(numericId, {
+          text: task.text,
+          start_date: task.start_date instanceof Date ? formatDateString(task.start_date) : task.start_date,
+          end_date: task.end_date instanceof Date ? formatDateString(task.end_date) : task.end_date,
+          duration: task.duration,
+          progress: task.progress,
+          parent: task.parent || 0,
+          kind_task: task.kind_task,
+          owner_id: task.owner_id,
+          sortorder: task.sortorder, // sortorderも保存
+          hyperlink: task.hyperlink,
+          ToDo: task.ToDo,
+          memo: task.memo,
+          task_schedule: task.task_schedule,
+          edit_date: task.edit_date,
+          color: task.color,
+          textColor: task.textColor,
+        });
+      }
+    };
+
+    // Update edit_date on task update and save to backend
+    // タスク更新時にedit_dateを更新し、バックエンドに保存
     gantt.attachEvent('onAfterTaskUpdate', (id: any, task: any) => {
       const today = new Date();
       const todayStr = formatEditDate(today);
@@ -409,25 +445,72 @@ export function GanttChart({
       }
 
       // API経由でバックエンドに保存
-      if (onTaskUpdateRef.current && typeof id === 'number') {
-        onTaskUpdateRef.current(id, {
-          text: task.text,
-          start_date: task.start_date instanceof Date ? formatDateString(task.start_date) : task.start_date,
-          end_date: task.end_date instanceof Date ? formatDateString(task.end_date) : task.end_date,
-          duration: task.duration,
-          progress: task.progress,
-          parent: task.parent || 0,
-          kind_task: task.kind_task,
-          owner_id: task.owner_id,
-          hyperlink: task.hyperlink,
-          ToDo: task.ToDo,
-          memo: task.memo,
-          task_schedule: task.task_schedule,
-          edit_date: task.edit_date,
-          color: task.color,
-          textColor: task.textColor,
+      saveTask(id, task);
+      return true;
+    });
+
+    // Handle Undo/Redo persistence
+    const handleUndoRedo = (command: any) => {
+      // コマンドの影響を受けたタスクを特定して保存
+      if (command && command.commands) {
+        command.commands.forEach((cmd: any) => {
+          if (cmd.entity === 'task') {
+            const taskId = cmd.id;
+            if (gantt.isTaskExists(taskId)) {
+              const task = gantt.getTask(taskId);
+              saveTask(taskId, task);
+            }
+          }
         });
       }
+    };
+
+    gantt.attachEvent('onAfterUndo', handleUndoRedo);
+    gantt.attachEvent('onAfterRedo', handleUndoRedo);
+
+    // Handle Task Reordering
+    gantt.attachEvent('onAfterTaskMove', (id: string | number, parent: string | number, tindex: number) => {
+      if (ignoreMoveEvent.current) return true;
+
+      // Handle multi-select move
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const selectedTasks = (gantt as any).getSelectedTasks ? (gantt as any).getSelectedTasks() : [];
+
+      if (selectedTasks.length > 1 && selectedTasks.map(String).includes(String(id))) {
+        ignoreMoveEvent.current = true;
+
+        let offset = 1;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        selectedTasks.forEach((sid: any) => {
+          if (String(sid) !== String(id)) {
+            // Move other selected tasks to immediately follow the dragged task
+            gantt.moveTask(sid, tindex + offset, parent);
+            offset++;
+          }
+        });
+
+        ignoreMoveEvent.current = false;
+      }
+
+      // id: moved task id
+      // parent: new parent id
+      // tindex: new index (0-based)
+
+      // Get all children of the new parent (siblings including the moved task)
+      const children = gantt.getChildren(parent);
+
+      const items = children.map((childId, index) => {
+        return {
+          id: Number(childId),
+          sortorder: index,
+          parent: Number(parent),
+        };
+      });
+
+      // Send batch update to backend
+      isInternalChange.current = true;
+      reorderTasks({ items });
+
       return true;
     });
 
@@ -516,6 +599,11 @@ export function GanttChart({
   // Load data when tasks/links change
   useEffect(() => {
     if (!initialized.current) return;
+
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
 
     const ganttTasks = tasks.map((task) => ({
       ...task,

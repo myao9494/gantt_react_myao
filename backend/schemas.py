@@ -93,3 +93,13 @@ class ImportResponse(BaseModel):
     imported_count: int
     skipped_count: int
     errors: List[str]
+
+
+class TaskReorderItem(BaseModel):
+    id: int
+    sortorder: int
+    parent: int
+
+
+class TaskReorderRequest(BaseModel):
+    items: List[TaskReorderItem]

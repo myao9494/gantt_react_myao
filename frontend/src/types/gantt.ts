@@ -104,3 +104,15 @@ export interface UpdateTaskRequest {
   memo?: string;
   hyperlink?: string;
 }
+
+/** タスク並び替えアイテム */
+export interface TaskReorderItem {
+  id: number;
+  sortorder: number;
+  parent: number;
+}
+
+/** タスク並び替えリクエスト */
+export interface TaskReorderRequest {
+  items: TaskReorderItem[];
+}

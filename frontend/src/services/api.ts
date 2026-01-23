@@ -6,6 +6,7 @@ import type {
   GanttData,
   CreateTaskRequest,
   UpdateTaskRequest,
+  TaskReorderRequest,
 } from '../types/gantt';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -85,9 +86,24 @@ export async function deleteTask(
   }
 }
 
+// ... (existing code)
 export async function cloneTask(id: number): Promise<ApiResponse<Task>> {
   try {
     const response = await api.post(`/api/tasks/${id}/clone`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '通信エラー',
+    };
+  }
+}
+
+export async function reorderTasks(
+  request: TaskReorderRequest
+): Promise<ApiResponse<{ status: string; updated_count: number }>> {
+  try {
+    const response = await api.post('/api/tasks/reorder', request);
     return { success: true, data: response.data };
   } catch (error) {
     return {

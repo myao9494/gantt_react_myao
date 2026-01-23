@@ -44,6 +44,35 @@
   background: var(--weekend-bg) !important;
 }
 
+/* Selection highlighting */
+/* Left side (Grid) */
+.gantt_grid_data .gantt_row.gantt_selected,
+.gantt_grid_data .gantt_row.odd.gantt_selected,
+.gantt_grid_data .gantt_row.gantt_selected .gantt_cell,
+.gantt_grid_data .gantt_row.odd.gantt_selected .gantt_cell {
+  background-color: rgba(255, 235, 59, 0.3) !important;
+  color: #333 !important;
+  /* Ensure text is readable on yellow */
+}
+
+/* Right side (Timeline) */
+.gantt_task_row.gantt_selected {
+  background-color: rgba(255, 235, 59, 0.3) !important;
+}
+
+/* Dark mode overrides for selection */
+[data-theme="dark"] .gantt_grid_data .gantt_row.gantt_selected,
+[data-theme="dark"] .gantt_grid_data .gantt_row.odd.gantt_selected,
+[data-theme="dark"] .gantt_grid_data .gantt_row.gantt_selected .gantt_cell,
+[data-theme="dark"] .gantt_grid_data .gantt_row.odd.gantt_selected .gantt_cell {
+  background-color: rgba(255, 235, 59, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .gantt_task_row.gantt_selected {
+  background-color: rgba(255, 235, 59, 0.2) !important;
+}
+
 /* Task bars - base styles */
 .gantt_task_line {
   border-radius: 3px;
