@@ -19,6 +19,7 @@ import {
   formatEditDate,
 } from '../../constants/gantt';
 import '../../styles/gantt.css';
+import { DateSettingModal } from './DateSettingModal';
 
 interface GanttChartProps {
   tasks: Task[];
@@ -98,6 +99,18 @@ export function GanttChart({
     items: [],
   });
 
+  const [dateModal, setDateModal] = useState<{
+    isOpen: boolean;
+    taskId: number | null;
+    initialDate: Date;
+    initialDuration: number;
+  }>({
+    isOpen: false,
+    taskId: null,
+    initialDate: new Date(),
+    initialDuration: 1,
+  });
+
   // Batch move loop prevention
   const ignoreMoveEvent = useRef(false);
   const isInternalChange = useRef(false);
@@ -139,6 +152,45 @@ export function GanttChart({
       gantt.updateTask(taskId);
       if (onTaskUpdate) {
         onTaskUpdate(taskId, { owner_id: ownerId as 0 | 10 | 20 | 30 });
+      }
+    },
+    [onTaskUpdate]
+  );
+
+  // Task Kind変更のハンドラ
+  const handleSetKind = useCallback(
+    (taskId: number, kind: string) => {
+      const task = gantt.getTask(taskId);
+      task.kind_task = kind;
+      gantt.updateTask(taskId);
+      if (onTaskUpdate) {
+        onTaskUpdate(taskId, { kind_task: kind as unknown as TaskKind });
+      }
+    },
+    [onTaskUpdate]
+  );
+
+  // Bar Color変更のハンドラ
+  const handleSetColor = useCallback(
+    (taskId: number, color: string) => {
+      const task = gantt.getTask(taskId);
+      task.color = color;
+      gantt.updateTask(taskId);
+      if (onTaskUpdate) {
+        onTaskUpdate(taskId, { color });
+      }
+    },
+    [onTaskUpdate]
+  );
+
+  // Text Color変更のハンドラ
+  const handleSetTextColor = useCallback(
+    (taskId: number, textColor: string) => {
+      const task = gantt.getTask(taskId);
+      task.textColor = textColor;
+      gantt.updateTask(taskId);
+      if (onTaskUpdate) {
+        onTaskUpdate(taskId, { textColor });
       }
     },
     [onTaskUpdate]
@@ -201,6 +253,40 @@ export function GanttChart({
     [onTaskCreate]
   );
 
+  // 期間設定モーダルを開く
+  const handleSetTimePeriod = useCallback((taskId: number) => {
+    const task = gantt.getTask(taskId);
+    setDateModal({
+      isOpen: true,
+      taskId: taskId,
+      initialDate: task.start_date ? new Date(task.start_date) : new Date(),
+      initialDuration: Number(task.duration) || 1,
+    });
+  }, []);
+
+  // 期間設定保存
+  const handleSaveDate = useCallback((startDate: Date, duration: number) => {
+    if (dateModal.taskId) {
+      const task = gantt.getTask(dateModal.taskId);
+      // dates must be objects for gantt
+      task.start_date = startDate;
+      task.duration = duration;
+      const endDate = gantt.calculateEndDate({ start_date: startDate, duration: duration, task: task });
+      task.end_date = endDate;
+
+      gantt.updateTask(dateModal.taskId);
+
+      if (onTaskUpdate) {
+        onTaskUpdate(dateModal.taskId, {
+          start_date: formatDateString(startDate),
+          duration: duration,
+          end_date: formatDateString(endDate),
+        });
+      }
+    }
+    setDateModal(prev => ({ ...prev, isOpen: false }));
+  }, [dateModal.taskId, onTaskUpdate]);
+
   // Close context menu
   const closeContextMenu = useCallback(() => {
     setContextMenu((prev) => ({ ...prev, visible: false }));
@@ -244,12 +330,16 @@ export function GanttChart({
     gantt.config.end_date = oneYearLater;
 
     // Register server lists for lightbox
+    // kind_task, owner_id, color, textColorはコンテキストメニューで設定するため、リスト登録は不要かもしれないが
+    // 互換性維持のため残しておくか、使用箇所がないなら削除可能。
+    // Lightboxで使用しないなら削除しても良いが、一応残しておく。
     gantt.serverList('kind_task', KIND_TASKS.map(k => ({ key: k.key, label: k.label })));
     gantt.serverList('owner_id', OWNERS.map(o => ({ key: o.key, label: o.label })));
     gantt.serverList('color', COLOR_OPTIONS.map(c => ({ key: c.key, label: c.label })));
     gantt.serverList('textColor', COLOR_OPTIONS.map(c => ({ key: c.key, label: c.label })));
 
     // Lightbox configuration (matching original app)
+    // コンテキストメニューに移動した項目（kind, owner, barColor, textColor）を削除
     (gantt.config.lightbox as any).sections = [
       {
         name: 'hierarchy',
@@ -262,35 +352,35 @@ export function GanttChart({
       { name: 'ToDo', height: 60, map_to: 'ToDo', type: 'textarea' },
       { name: 'memo', height: 60, map_to: 'memo', type: 'textarea' },
       { name: 'task_schedule', height: 60, map_to: 'task_schedule', type: 'textarea' },
-      {
-        name: 'kind',
-        height: 22,
-        map_to: 'kind_task',
-        type: 'select',
-        options: gantt.serverList('kind_task'),
-      },
-      {
-        name: 'owner',
-        height: 22,
-        map_to: 'owner_id',
-        type: 'select',
-        options: gantt.serverList('owner_id'),
-      },
-      { name: 'time', type: 'duration', map_to: 'auto' },
-      {
-        name: 'barColor',
-        height: 22,
-        map_to: 'color',
-        type: 'select',
-        options: gantt.serverList('color'),
-      },
-      {
-        name: 'textColor',
-        height: 22,
-        map_to: 'textColor',
-        type: 'select',
-        options: gantt.serverList('textColor'),
-      },
+      // {
+      //   name: 'kind',
+      //   height: 22,
+      //   map_to: 'kind_task',
+      //   type: 'select',
+      //   options: gantt.serverList('kind_task'),
+      // },
+      // {
+      //   name: 'owner',
+      //   height: 22,
+      //   map_to: 'owner_id',
+      //   type: 'select',
+      //   options: gantt.serverList('owner_id'),
+      // },
+      // { name: 'time', type: 'duration', map_to: 'auto' },
+      // {
+      //   name: 'barColor',
+      //   height: 22,
+      //   map_to: 'color',
+      //   type: 'select',
+      //   options: gantt.serverList('color'),
+      // },
+      // {
+      //   name: 'textColor',
+      //   height: 22,
+      //   map_to: 'textColor',
+      //   type: 'select',
+      //   options: gantt.serverList('textColor'),
+      // },
       { name: 'edit_date', height: 35, map_to: 'edit_date', type: 'textarea' },
     ];
 
@@ -301,10 +391,10 @@ export function GanttChart({
     gantt.locale.labels.section_ToDo = 'ToDo';
     gantt.locale.labels.section_memo = 'memo';
     gantt.locale.labels.section_task_schedule = 'task_schedule';
-    gantt.locale.labels.section_kind = 'kind_task';
-    gantt.locale.labels.section_owner = 'owner';
-    gantt.locale.labels.section_barColor = 'Color';
-    gantt.locale.labels.section_textColor = 'Text Color';
+    // gantt.locale.labels.section_kind = 'kind_task';
+    // gantt.locale.labels.section_owner = 'owner';
+    // gantt.locale.labels.section_barColor = 'Color';
+    // gantt.locale.labels.section_textColor = 'Text Color';
     gantt.locale.labels.section_edit_date = 'edit_date';
 
     // Hierarchy template for lightbox
@@ -545,6 +635,10 @@ export function GanttChart({
             onDelete: handleDeleteTask,
             onSetProgress: handleSetProgress,
             onSetOwner: handleSetOwner,
+            onSetKind: handleSetKind,
+            onSetColor: handleSetColor,
+            onSetTextColor: handleSetTextColor,
+            onSetTimePeriod: handleSetTimePeriod,
             onAddChild: handleAddChild,
             onCopy: handleCopyTask,
           });
@@ -594,7 +688,7 @@ export function GanttChart({
     return () => {
       gantt.clearAll();
     };
-  }, [handleEditTask, handleDeleteTask, handleSetProgress, handleAddChild, handleCopyTask, handleAddNewTask, timeScale]);
+  }, [handleEditTask, handleDeleteTask, handleSetProgress, handleSetOwner, handleSetKind, handleSetColor, handleSetTextColor, handleSetTimePeriod, handleAddChild, handleCopyTask, handleAddNewTask, timeScale]);
 
   // Load data when tasks/links change
   useEffect(() => {
@@ -718,6 +812,37 @@ export function GanttChart({
 
     gantt.render();
   }, [isPrintMode, gridCollapsed]);
+
+
+  // Render
+  // Gantt container needs to be wrapped or have the modal adjacent
+  // But GanttChart returns pure DOM initialization in useEffect.
+  // We need to return JSX. 
+  // The current component structure returns:
+  /*
+    return () => {
+      gantt.clearAll();
+    };
+  }, [handleEditTask, ...]); 
+  */
+  // Wait, the component currently does NOT return JSX at the end of the functional component?
+  // Let me check the full file content again to see where the return statement is.
+  // Ah, I need to see the end of the file.
+
+  // Checking the file content previously viewed:
+  // It ends with useEffect hooks. I haven't seen the `return` statement of the component `GanttChart`.
+  // I need to find where to put the Modal in the return JSX key.
+
+  // Let's assume standard React component structure.
+
+  // Since I cannot see the return statement in the previous view_file output (it was truncated),
+  // I should probably view the end of the file first.
+
+  // Changing strategy: I will apply the other changes first, then view the end of the file to add the modal to JSX.
+
+  // I will just apply the logic changes for now.
+  // And I will assume the return statement is at the end.
+
 
 
   // Expand all tasks - オリジナルアプリと同じ方式でgantt内部を直接操作
@@ -972,6 +1097,13 @@ export function GanttChart({
           onClose={closeContextMenu}
         />
       )}
+      <DateSettingModal
+        isOpen={dateModal.isOpen}
+        onClose={() => setDateModal(prev => ({ ...prev, isOpen: false }))}
+        onSave={handleSaveDate}
+        initialDate={dateModal.initialDate}
+        initialDuration={dateModal.initialDuration}
+      />
     </div>
   );
 }

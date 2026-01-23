@@ -66,11 +66,26 @@
 [data-theme="dark"] .gantt_grid_data .gantt_row.gantt_selected .gantt_cell,
 [data-theme="dark"] .gantt_grid_data .gantt_row.odd.gantt_selected .gantt_cell {
   background-color: rgba(255, 235, 59, 0.2) !important;
-  color: var(--text-primary) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .gantt_grid_data .gantt_row.gantt_selected .gantt_cell a,
+[data-theme="dark"] .gantt_grid_data .gantt_row.odd.gantt_selected .gantt_cell a {
+  color: #ffffff !important;
+  text-decoration: underline;
 }
 
 [data-theme="dark"] .gantt_task_row.gantt_selected {
   background-color: rgba(255, 235, 59, 0.2) !important;
+}
+
+[data-theme="dark"] .gantt_task_row.gantt_selected .gantt_side_content {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .gantt_task_row.gantt_selected .gantt_side_content a {
+  color: #ffffff !important;
+  text-decoration: underline;
 }
 
 /* Task bars - base styles */
@@ -90,12 +105,23 @@
   background: #ffc06877;
 }
 
+.gantt_task_line.pro.no-link .gantt_task_content {
+  color: #ffffff !important;
+}
+
+.gantt_task_line.pro a {
+  color: inherit !important;
+  text-decoration: underline !important;
+  font-weight: bold;
+}
+
 .gantt_task_line.pro .gantt_task_progress {
   background: #ffd1a491;
   height: 80%;
 }
 
 .gantt_task_line.pro .gantt_task_content {
+  font-weight: bold;
   font-size: 10px;
   color: rgb(137, 132, 6);
   width: 100%;

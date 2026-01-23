@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { TaskKind } from '../../types/gantt';
-import { OWNERS } from '../../constants/gantt';
+import { OWNERS, KIND_TASKS, COLOR_OPTIONS } from '../../constants/gantt';
 
 export interface ContextMenuItem {
   label?: string;
@@ -126,6 +126,10 @@ export function getTaskContextMenuItems(
     onDelete: (id: number) => void;
     onSetProgress: (id: number, progress: number) => void;
     onSetOwner: (id: number, ownerId: number) => void;
+    onSetKind: (id: number, kind: string) => void;
+    onSetColor: (id: number, color: string) => void;
+    onSetTextColor: (id: number, color: string) => void;
+    onSetTimePeriod: (id: number) => void;
     onAddChild: (parentId: number, kind: TaskKind) => void;
     onCopy: (id: number) => void;
   }
@@ -137,6 +141,19 @@ export function getTaskContextMenuItems(
       action: () => callbacks.onEdit(taskId),
     },
     { divider: true },
+    {
+      label: '期間設定',
+      icon: '📅',
+      action: () => callbacks.onSetTimePeriod(taskId),
+    },
+    {
+      label: '種別変更',
+      icon: '🏷️',
+      submenu: KIND_TASKS.map((kind) => ({
+        label: kind.label,
+        action: () => callbacks.onSetKind(taskId, kind.key),
+      })),
+    },
     {
       label: '進捗設定',
       icon: '📊',
@@ -162,6 +179,23 @@ export function getTaskContextMenuItems(
           action: () => callbacks.onSetProgress(taskId, 1),
         },
       ],
+    },
+    {
+      label: 'バー色設定',
+      icon: '🎨',
+      submenu: COLOR_OPTIONS.map((color) => ({
+        label: color.label,
+        icon: color.key ? '■' : '□', // 色付きアイコンがあれば良いが、一旦文字で
+        action: () => callbacks.onSetColor(taskId, color.key),
+      })),
+    },
+    {
+      label: '文字色設定',
+      icon: '🅰️',
+      submenu: COLOR_OPTIONS.map((color) => ({
+        label: color.label,
+        action: () => callbacks.onSetTextColor(taskId, color.key),
+      })),
     },
     {
       label: 'オーナー変更',
