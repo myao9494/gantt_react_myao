@@ -55,8 +55,8 @@ export interface TaskFilter {
   showType: 'all' | 'task' | 'project';
   category?: string;
   owner?: string; // All/自分/待/サイン取/他
-  limitedPeriodEnabled: boolean; // true: 限定期間有効, false: 全期間表示
-  dateRangeStart?: number; // 日数（今日からの相対）
+  periodMode: 'all' | 'before_today' | 'limited'; // 表示期間モード
+  dateRangeStart?: number; // 日数（今日からの相対）- limitedモード時のみ使用
   dateRangeEnd?: number;
 }
 

@@ -15,7 +15,7 @@ const defaultFilter: TaskFilter = {
   showCompleted: false,
   showType: 'all',
   category: '',
-  limitedPeriodEnabled: true,  // デフォルトで限定期間有効
+  periodMode: 'limited',  // デフォルトで期間限定モード
   dateRangeStart: 0,
   dateRangeEnd: 0,
 };

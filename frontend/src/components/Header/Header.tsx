@@ -63,6 +63,71 @@ export function Header({
     fileInputRef.current?.click();
   };
 
+  // ヘッダーツールバー内のフォーカス可能な要素を見つけるヘルパー関数
+  const findFocusableElements = (): HTMLElement[] => {
+    const toolbar = document.querySelector('.toolbar');
+    if (!toolbar) return [];
+    const elements = toolbar.querySelectorAll('button:not([disabled]), input:not([disabled]):not([type="file"]), select:not([disabled])');
+    return Array.from(elements) as HTMLElement[];
+  };
+
+  // 次のフォーカス可能な要素に移動
+  const focusNextElement = (current: HTMLElement) => {
+    const elements = findFocusableElements();
+    const currentIndex = elements.indexOf(current);
+    if (currentIndex !== -1 && currentIndex < elements.length - 1) {
+      elements[currentIndex + 1].focus();
+    }
+  };
+
+  // 前のフォーカス可能な要素に移動
+  const focusPrevElement = (current: HTMLElement) => {
+    const elements = findFocusableElements();
+    const currentIndex = elements.indexOf(current);
+    if (currentIndex > 0) {
+      elements[currentIndex - 1].focus();
+    }
+  };
+
+  // ボタン用の矢印キーハンドラ
+  const handleButtonArrowKeys = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      focusNextElement(e.currentTarget);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      focusPrevElement(e.currentTarget);
+    }
+  };
+
+  // 入力フィールド用の矢印キーハンドラ（カーソル位置を考慮）
+  const handleInputArrowKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    const input = e.currentTarget;
+    if (e.key === 'ArrowRight' && input.selectionStart === input.value.length) {
+      e.preventDefault();
+      focusNextElement(input);
+    } else if (e.key === 'ArrowLeft' && input.selectionStart === 0) {
+      e.preventDefault();
+      focusPrevElement(input);
+    }
+  };
+
+  // select用の矢印キーハンドラ
+  const handleSelectArrowKeys = (e: React.KeyboardEvent<HTMLSelectElement>) => {
+    // Selectでは上下矢印がオプション選択に使われるため、左右のみ処理
+    if (e.key === 'ArrowRight') {
+      e.stopPropagation();
+      e.preventDefault();
+      focusNextElement(e.currentTarget);
+    } else if (e.key === 'ArrowLeft') {
+      e.stopPropagation();
+      e.preventDefault();
+      focusPrevElement(e.currentTarget);
+    }
+  };
+
   return (
     <header className="header">
       <div className="toolbar">
@@ -93,6 +158,7 @@ export function Header({
           onChange={(e) =>
             onFilterChange({ ...filter, searchText: e.target.value })
           }
+          onKeyDown={handleInputArrowKeys}
         />
         <input
           type="text"
@@ -102,49 +168,103 @@ export function Header({
           onChange={(e) =>
             onFilterChange({ ...filter, searchProject: e.target.value })
           }
+          onKeyDown={handleInputArrowKeys}
         />
 
         <div className="toolbar-divider"></div>
 
         {/* Expand/Collapse */}
-        <button className="btn" onClick={onExpandAll}>
+        <button className="btn" onClick={onExpandAll} onKeyDown={handleButtonArrowKeys}>
           open
         </button>
-        <button className="btn" onClick={onCollapseAll}>
+        <button className="btn" onClick={onCollapseAll} onKeyDown={handleButtonArrowKeys}>
           close
         </button>
 
         <div className="toolbar-divider"></div>
 
+
         {/* Date Range */}
         <span className="label">表示期間:</span>
-        <button
-          className={`btn ${filter.limitedPeriodEnabled ? 'active' : ''}`}
-          onClick={() => onFilterChange({ ...filter, limitedPeriodEnabled: !filter.limitedPeriodEnabled })}
-        >
-          限定期間
-        </button>
+        <div className="btn-group">
+          <button
+            className={`btn ${filter.periodMode === 'all' ? 'active' : ''}`}
+            onClick={() => onFilterChange({ ...filter, periodMode: 'all' })}
+            onKeyDown={handleButtonArrowKeys}
+          >
+            ALL
+          </button>
+          <button
+            className={`btn ${filter.periodMode === 'before_today' ? 'active' : ''}`}
+            onClick={() => onFilterChange({ ...filter, periodMode: 'before_today' })}
+            onKeyDown={handleButtonArrowKeys}
+          >
+            今日以前
+          </button>
+          <button
+            className={`btn ${filter.periodMode === 'limited' ? 'active' : ''}`}
+            onClick={() => onFilterChange({ ...filter, periodMode: 'limited' })}
+            onKeyDown={handleButtonArrowKeys}
+          >
+            期間限定
+          </button>
+        </div>
         <input
           type="text"
           className="number-input wide"
+          disabled={filter.periodMode !== 'limited'}
           value={dateStartInput}
           onFocus={(e) => e.target.select()}
           onChange={(e) => {
             const val = e.target.value;
-            // 数字と-のみ許容（空文字、-のみ、-数字、数字のみ）
             if (val === '' || val === '-' || /^-?\d+$/.test(val)) {
               setDateStartInput(val);
             }
           }}
           onKeyDown={(e) => {
-            // 矢印キーで前後の要素に移動
-            if (e.key === 'ArrowRight' || e.key === 'Tab') {
+            e.stopPropagation(); // DHTMLX干渉防止
+
+            if (e.key === 'Enter') {
+              // 確定（フォーカスは維持し、値を適用）
+              const num = Number(dateStartInput) || 0;
+              const clamped = Math.max(-1000, Math.min(1000, num));
+              if (String(clamped) !== dateStartInput) {
+                setDateStartInput(String(clamped));
+              }
+              onFilterChange({ ...filter, dateRangeStart: clamped });
+              e.currentTarget.select(); // 再選択して連続入力を容易に
+              return;
+            }
+
+            if (e.key === 'ArrowRight') {
               const input = e.currentTarget;
-              // カーソルが末尾にある場合のみ移動
-              if (input.selectionStart === input.value.length && e.key === 'ArrowRight') {
+              if (input.selectionStart === input.value.length) {
                 e.preventDefault();
-                const next = input.parentElement?.querySelector('.number-input.wide:nth-of-type(2)') as HTMLInputElement;
-                if (next) next.focus();
+                // 次のinputを探す (spanをスキップ)
+                let next = input.nextElementSibling as HTMLElement;
+                while (next) {
+                  if (next.tagName === 'INPUT') {
+                    (next as HTMLInputElement).focus();
+                    return;
+                  }
+                  next = next.nextElementSibling as HTMLElement;
+                }
+              }
+            }
+
+            if (e.key === 'ArrowLeft') {
+              const input = e.currentTarget;
+              if (input.selectionStart === 0) {
+                e.preventDefault();
+                // 前のbuttonを探す
+                let prev = input.previousElementSibling as HTMLElement;
+                while (prev) {
+                  if (prev.tagName === 'BUTTON') {
+                    prev.focus();
+                    return;
+                  }
+                  prev = prev.previousElementSibling as HTMLElement;
+                }
               }
             }
           }}
@@ -159,6 +279,7 @@ export function Header({
         <input
           type="text"
           className="number-input wide"
+          disabled={filter.periodMode !== 'limited'}
           value={dateEndInput}
           onFocus={(e) => e.target.select()}
           onChange={(e) => {
@@ -168,13 +289,56 @@ export function Header({
             }
           }}
           onKeyDown={(e) => {
+            e.stopPropagation();
+
+            if (e.key === 'Enter') {
+              const num = Number(dateEndInput) || 0;
+              const clamped = Math.max(-1000, Math.min(1000, num));
+              if (String(clamped) !== dateEndInput) {
+                setDateEndInput(String(clamped));
+              }
+              onFilterChange({ ...filter, dateRangeEnd: clamped });
+              e.currentTarget.select();
+              return;
+            }
+
             if (e.key === 'ArrowLeft') {
               const input = e.currentTarget;
               if (input.selectionStart === 0) {
                 e.preventDefault();
-                const inputs = input.parentElement?.querySelectorAll('.number-input.wide');
-                if (inputs && inputs.length > 0) {
-                  (inputs[0] as HTMLInputElement).focus();
+                // 前のinputを探す (spanをスキップ)
+                let prev = input.previousElementSibling as HTMLElement;
+                while (prev) {
+                  if (prev.tagName === 'INPUT') {
+                    (prev as HTMLInputElement).focus();
+                    return;
+                  }
+                  prev = prev.previousElementSibling as HTMLElement;
+                }
+              }
+            }
+
+            if (e.key === 'ArrowRight') {
+              const input = e.currentTarget;
+              if (input.selectionStart === input.value.length) {
+                // 次の要素（未完了ボタン）へ
+                // input2 -> div.btn-group -> button
+                e.preventDefault();
+                // 親の次の要素を探すか、DOM構造決め打ち
+                // Structure: ... input1, span, input2, div.toolbar-divider, div.btn-group ...
+                // input2.nextElementSibling is div.toolbar-divider
+                let next = input.nextElementSibling as HTMLElement;
+                while (next) {
+                  if (next.tagName === 'BUTTON' || (next.tagName === 'DIV' && next.classList.contains('btn-group'))) {
+                    if (next.classList.contains('btn-group')) {
+                      const btn = next.querySelector('button');
+                      if (btn) { btn.focus(); return; }
+                    }
+                    if (next.tagName === 'BUTTON') {
+                      next.focus(); return;
+                    }
+                  }
+                  next = next.nextElementSibling as HTMLElement;
                 }
               }
             }
@@ -194,12 +358,14 @@ export function Header({
           <button
             className={`btn ${!filter.showCompleted ? 'active' : ''}`}
             onClick={() => onFilterChange({ ...filter, showCompleted: false })}
+            onKeyDown={handleButtonArrowKeys}
           >
             未完了
           </button>
           <button
             className={`btn ${filter.showCompleted ? 'active' : ''}`}
             onClick={() => onFilterChange({ ...filter, showCompleted: true })}
+            onKeyDown={handleButtonArrowKeys}
           >
             全て
           </button>
@@ -212,18 +378,21 @@ export function Header({
           <button
             className={`btn ${filter.showType === 'all' ? 'active' : ''}`}
             onClick={() => onFilterChange({ ...filter, showType: 'all' })}
+            onKeyDown={handleButtonArrowKeys}
           >
             全て
           </button>
           <button
             className={`btn ${filter.showType === 'task' ? 'active' : ''}`}
             onClick={() => onFilterChange({ ...filter, showType: 'task' })}
+            onKeyDown={handleButtonArrowKeys}
           >
             task
           </button>
           <button
             className={`btn ${filter.showType === 'project' ? 'active' : ''}`}
             onClick={() => onFilterChange({ ...filter, showType: 'project' })}
+            onKeyDown={handleButtonArrowKeys}
           >
             pro
           </button>
@@ -236,6 +405,7 @@ export function Header({
           onChange={(e) =>
             onFilterChange({ ...filter, owner: e.target.value })
           }
+          onKeyDown={handleSelectArrowKeys}
         >
           <option value="">All</option>
           <option value="自分">自分</option>
@@ -251,24 +421,28 @@ export function Header({
           <button
             className={`btn ${timeScale === 'day' ? 'active' : ''}`}
             onClick={() => onTimeScaleChange('day')}
+            onKeyDown={handleButtonArrowKeys}
           >
             日
           </button>
           <button
             className={`btn ${timeScale === 'month' ? 'active' : ''}`}
             onClick={() => onTimeScaleChange('month')}
+            onKeyDown={handleButtonArrowKeys}
           >
             月
           </button>
           <button
             className={`btn ${timeScale === 'quarter' ? 'active' : ''}`}
             onClick={() => onTimeScaleChange('quarter')}
+            onKeyDown={handleButtonArrowKeys}
           >
             四
           </button>
           <button
             className={`btn ${timeScale === 'year' ? 'active' : ''}`}
             onClick={() => onTimeScaleChange('year')}
+            onKeyDown={handleButtonArrowKeys}
           >
             年
           </button>

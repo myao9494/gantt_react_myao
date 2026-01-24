@@ -989,11 +989,14 @@ export function GanttChart({
         }
       }
 
-      // Date range filter (限定期間)
-      // OFF時: 今日と過去のタスクのみ表示
-      // ON時: 全期間表示（dateRangeで指定した範囲を表示）
-      if (!currentFilter.limitedPeriodEnabled) {
-        // OFF: 今日と過去のみ表示
+      // Date range filter（表示期間モード）
+      // 'all': 全期間表示
+      // 'before_today': 今日と過去のタスクのみ表示
+      // 'limited': dateRangeで指定した範囲を表示
+      if (currentFilter.periodMode === 'all') {
+        // 全期間表示 - フィルターなし
+      } else if (currentFilter.periodMode === 'before_today') {
+        // 今日と過去のみ表示
         const today = new Date();
         today.setHours(23, 59, 59, 999); // 今日の終わりまで
 
@@ -1009,8 +1012,8 @@ export function GanttChart({
             }
           }
         }
-      } else {
-        // ON: dateRangeで指定した範囲のタスクのみ表示
+      } else if (currentFilter.periodMode === 'limited') {
+        // dateRangeで指定した範囲のタスクのみ表示
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -1053,7 +1056,7 @@ export function GanttChart({
     return () => {
       gantt.detachEvent(eventId);
     };
-  }, [filter?.searchText, filter?.searchProject, filter?.showType, filter?.limitedPeriodEnabled, filter?.dateRangeStart, filter?.dateRangeEnd]);
+  }, [filter?.searchText, filter?.searchProject, filter?.showType, filter?.periodMode, filter?.dateRangeStart, filter?.dateRangeEnd]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
