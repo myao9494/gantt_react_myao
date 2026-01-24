@@ -11,6 +11,8 @@ interface HamburgerMenuProps {
     onExportCSV: () => void;
     isPrintMode: boolean;
     onPrintModeToggle: () => void;
+    gridWidth: number;
+    onGridWidthChange: (width: number) => void;
 }
 
 export function HamburgerMenu({
@@ -23,6 +25,8 @@ export function HamburgerMenu({
     onExportCSV,
     isPrintMode,
     onPrintModeToggle,
+    gridWidth,
+    onGridWidthChange,
 }: HamburgerMenuProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -99,6 +103,23 @@ export function HamburgerMenu({
                             onChange={(e) => onDisplaySizeChange(Number(e.target.value))}
                         />
                         <span>{displaySize}%</span>
+                    </div>
+
+                    <div className="menu-item">
+                        <label>
+                            <span className="icon">↔</span>
+                            <span>リスト幅</span>
+                        </label>
+                    </div>
+                    <div className="menu-item size-control">
+                        <input
+                            type="range"
+                            min="200"
+                            max="800"
+                            value={gridWidth}
+                            onChange={(e) => onGridWidthChange(Number(e.target.value))}
+                        />
+                        <span>{gridWidth}px</span>
                     </div>
 
                     <div className="menu-divider"></div>

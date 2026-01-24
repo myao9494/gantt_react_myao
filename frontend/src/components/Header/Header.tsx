@@ -18,6 +18,8 @@ interface HeaderProps {
   onDisplaySizeChange: (size: number) => void;
   isPrintMode: boolean;
   onPrintModeToggle: () => void;
+  gridWidth: number;
+  onGridWidthChange: (width: number) => void;
 }
 
 export function Header({
@@ -34,6 +36,8 @@ export function Header({
   onDisplaySizeChange,
   isPrintMode,
   onPrintModeToggle,
+  gridWidth,
+  onGridWidthChange,
 }: HeaderProps) {
   const { darkMode, toggleDarkMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +149,8 @@ export function Header({
           onExportCSV={onExportCSV}
           isPrintMode={isPrintMode}
           onPrintModeToggle={onPrintModeToggle}
+          gridWidth={gridWidth}
+          onGridWidthChange={onGridWidthChange}
         />
 
         <div className="toolbar-divider"></div>

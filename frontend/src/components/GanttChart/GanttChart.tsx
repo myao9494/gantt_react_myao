@@ -35,6 +35,7 @@ interface GanttChartProps {
   onTaskDelete?: (id: number) => void;
   onTaskClone?: (id: number) => void;
   isPrintMode?: boolean;
+  gridWidth: number;
 }
 
 interface ContextMenuState {
@@ -81,6 +82,7 @@ export function GanttChart({
   onTaskDelete,
   onTaskClone,
   isPrintMode = false,
+  gridWidth,
 }: GanttChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
@@ -740,12 +742,12 @@ export function GanttChart({
       gantt.config.show_grid = false;
     } else {
       gantt.config.show_grid = true;
-      gantt.config.grid_width = 380;
+      gantt.config.grid_width = gridWidth;
     }
 
     // サイズを再計算して再描画
     gantt.render();
-  }, [gridCollapsed, isPrintMode]);
+  }, [gridCollapsed, isPrintMode, gridWidth]);
 
   // Handle Print Mode
   useEffect(() => {
@@ -770,7 +772,7 @@ export function GanttChart({
         gantt.config.show_grid = false;
       } else {
         gantt.config.show_grid = true;
-        gantt.config.grid_width = 380;
+        gantt.config.grid_width = gridWidth;
       }
 
       // Restore templates (matching initialization)
@@ -811,7 +813,7 @@ export function GanttChart({
     }
 
     gantt.render();
-  }, [isPrintMode, gridCollapsed]);
+  }, [isPrintMode, gridCollapsed, gridWidth]);
 
 
   // Render

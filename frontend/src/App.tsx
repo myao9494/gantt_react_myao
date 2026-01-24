@@ -41,6 +41,10 @@ function AppContent() {
     'gantt_displaySize',
     100
   );
+  const [gridWidth, setGridWidth] = useLocalStorage(
+    'gantt_gridWidth',
+    380
+  );
 
   // Fetch data from API
   const fetchData = useCallback(async () => {
@@ -277,6 +281,8 @@ function AppContent() {
           onDisplaySizeChange={setDisplaySize}
           isPrintMode={isPrintMode}
           onPrintModeToggle={togglePrintMode}
+          gridWidth={gridWidth}
+          onGridWidthChange={setGridWidth}
         />
         <main className="main">
           <div className="loading">読み込み中...</div>
@@ -301,6 +307,8 @@ function AppContent() {
         onDisplaySizeChange={setDisplaySize}
         isPrintMode={isPrintMode}
         onPrintModeToggle={togglePrintMode}
+        gridWidth={gridWidth}
+        onGridWidthChange={setGridWidth}
       />
       <main className={`main ${taskListCollapsed ? 'collapsed' : ''}`}>
         {error && (
@@ -323,6 +331,7 @@ function AppContent() {
           onTaskDelete={handleTaskDelete}
           onTaskClone={handleTaskClone}
           isPrintMode={isPrintMode}
+          gridWidth={gridWidth}
         />
       </main>
 
@@ -331,6 +340,7 @@ function AppContent() {
         className={`collapse-toggle ${taskListCollapsed ? 'collapsed' : ''}`}
         onClick={() => setTaskListCollapsed(!taskListCollapsed)}
         title="タスクリスト表示/非表示 (Ctrl+B)"
+        style={{ left: taskListCollapsed ? '8px' : `${gridWidth}px` }}
       >
         {taskListCollapsed ? '▶' : '◀'}
       </button>
