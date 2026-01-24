@@ -17,6 +17,7 @@ import {
   getTaskKindClass,
   formatDateString,
   formatEditDate,
+  getOwnerLabel,
 } from '../../constants/gantt';
 import '../../styles/gantt.css';
 import { DateSettingModal } from './DateSettingModal';
@@ -406,6 +407,13 @@ export function GanttChart({
       };
     }
 
+    // Editors
+    const ownerEditor = {
+      type: 'select',
+      map_to: 'owner_id',
+      options: gantt.serverList('owner_id'),
+    };
+
     // Columns configuration
     // add/clone/owner列は削除し、右クリックメニューで操作する
     gantt.config.columns = [
@@ -414,6 +422,17 @@ export function GanttChart({
         label: 'Task name',
         tree: true,
         width: '*', // 幅を自動調整
+        resize: true,
+      },
+      {
+        name: 'owner_id',
+        label: 'owner',
+        width: 60,
+        align: 'center',
+        editor: ownerEditor,
+        template: (task: any) => {
+          return getOwnerLabel(task.owner_id);
+        },
         resize: true,
       },
     ];
