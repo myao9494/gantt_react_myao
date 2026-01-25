@@ -696,6 +696,7 @@ export function GanttChart({
 
     // Initialize gantt
     gantt.init(containerRef.current);
+    initialized.current = true;
 
     // Add today marker
     gantt.addMarker({
@@ -704,12 +705,122 @@ export function GanttChart({
       text: 'Now',
     });
 
-    initialized.current = true;
 
+
+    // cleanup
     return () => {
+
       gantt.clearAll();
     };
   }, [handleEditTask, handleDeleteTask, handleSetProgress, handleSetOwner, handleSetKind, handleSetColor, handleSetTextColor, handleSetTimePeriod, handleAddChild, handleCopyTask, handleAddNewTask, timeScale]);
+
+  // Drag Scroll Logic - Dedicated Effect
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let scrollLeft = 0;
+    let scrollTop = 0;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Middle mouse button (1) or Left mouse button (0)
+      if (e.button === 1 || e.button === 0) {
+        // For Left click, check if the target is an "empty" area
+        if (e.button === 0) {
+          // 0. Check if DHTMLX is already handling a drag
+          if ((gantt.getState() as any).drag_id) return;
+
+          // 1. Precise Hit Test: Check all elements at the click position
+          // This handles cases where z-index causes e.target to be the background even when over a task
+          const elements = document.elementsFromPoint(e.clientX, e.clientY);
+          const isTaskRelated = elements.some(el => {
+            const hasClass = (cls: string) => el.classList && el.classList.contains(cls);
+            if (el.closest && el.closest('.gantt_task_line')) return true;
+            return hasClass('gantt_task_line') ||
+              hasClass('gantt_task_content') ||
+              hasClass('gantt_task_progress') ||
+              hasClass('gantt_link_point') ||
+              hasClass('gantt_task_drag');
+          });
+
+          if (isTaskRelated) {
+            return;
+          }
+
+          let targetNode: Node | null = e.target as Node;
+          if (targetNode && !(targetNode instanceof Element)) {
+            targetNode = targetNode.parentElement;
+          }
+          if (!targetNode) return;
+          const target = targetNode as HTMLElement;
+
+          // 2. Ignore interactions in the Grid (Left side) and Scale (Header)
+          if (target.closest('.gantt_grid') || target.closest('.gantt_grid_scale') || target.closest('.gantt_task_scale')) {
+            return;
+          }
+
+          // 3. Fallback: Check if DHTMLX identifies a task (via bubbling logic usually)
+          if (gantt.locate(e)) return;
+
+          // 4. Standard interactive class check (for things not caught by above)
+          const interactiveClasses = [
+            'gantt_task_line', 'gantt_task_content',
+            'gantt_link_point', 'gantt_link_line',
+            'gantt_task_drag',
+            'gantt_hor_scroll', 'gantt_ver_scroll'
+          ];
+
+          let isInteractive = false;
+          let current = target;
+          while (current && current !== container) {
+            if (interactiveClasses.some(cls => current.classList.contains(cls))) { isInteractive = true; break; }
+            if (['circle', 'path', 'INPUT', 'TEXTAREA', 'A', 'SELECT'].includes(current.tagName)) { isInteractive = true; break; }
+            current = current.parentElement as HTMLElement;
+          }
+          if (isInteractive) return;
+        }
+
+        e.preventDefault();
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        scrollLeft = gantt.getScrollState().x;
+        scrollTop = gantt.getScrollState().y;
+        container.style.cursor = 'grabbing';
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.clientX;
+      const y = e.clientY;
+      const walkX = (x - startX);
+      const walkY = (y - startY);
+      gantt.scrollTo(scrollLeft - walkX, scrollTop - walkY);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (isDragging) {
+        if (e.button === 1) e.preventDefault();
+        isDragging = false;
+        container.style.cursor = 'default';
+      }
+    };
+
+    container.addEventListener('mousedown', handleMouseDown, { capture: true });
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      container.removeEventListener('mousedown', handleMouseDown, { capture: true });
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   // Load data when tasks/links change
   useEffect(() => {
