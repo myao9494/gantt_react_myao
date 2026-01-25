@@ -136,6 +136,17 @@ export function getTaskContextMenuItems(
 ): ContextMenuItem[] {
   return [
     {
+      label: '子タスク追加',
+      icon: '⏰',
+      action: () => callbacks.onAddChild(taskId, 1),
+    },
+    {
+      label: '子プロジェクト追加',
+      icon: '📁',
+      action: () => callbacks.onAddChild(taskId, 2),
+    },
+    { divider: true },
+    {
       label: 'タスク編集',
       icon: '✏️',
       action: () => callbacks.onEdit(taskId),
@@ -204,17 +215,6 @@ export function getTaskContextMenuItems(
         label: owner.label,
         action: () => callbacks.onSetOwner(taskId, owner.key),
       })),
-    },
-    { divider: true },
-    {
-      label: '子プロジェクト追加',
-      icon: '📁',
-      action: () => callbacks.onAddChild(taskId, 2),
-    },
-    {
-      label: '子タスク追加',
-      icon: '⏰',
-      action: () => callbacks.onAddChild(taskId, 1),
     },
     { divider: true },
     {

@@ -69,6 +69,17 @@ function getTaskHierarchy(taskId: string | number): string {
   }
 }
 
+// Helper to format hyperlinks
+const formatHyperlink = (link: string): string => {
+  if (!link) return '';
+  if (link.startsWith('http://') || link.startsWith('https://')) {
+    return link;
+  }
+  // Use the local file opener API
+  const encodedPath = encodeURIComponent(link);
+  return `http://localhost:8001/api/open-path?path=${encodedPath}`;
+};
+
 export function GanttChart({
   tasks,
   links,
@@ -203,13 +214,13 @@ export function GanttChart({
     (parentId: number, kind: TaskKind) => {
       const today = new Date();
       const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 7);
+      endDate.setDate(endDate.getDate() + 1);
 
       const newTask: Partial<Task> = {
         text: kind === 2 ? '新規プロジェクト' : '新規タスク',
         start_date: formatDateString(today),
         end_date: formatDateString(endDate),
-        duration: 7,
+        duration: 1,
         progress: 0,
         parent: parentId,
         kind_task: kind,
@@ -236,13 +247,13 @@ export function GanttChart({
     (date: Date | null, kind: TaskKind) => {
       const startDate = date || new Date();
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 7);
+      endDate.setDate(endDate.getDate() + 1);
 
       const newTask: Partial<Task> = {
         text: kind === 2 ? '新規プロジェクト' : '新規タスク',
         start_date: formatDateString(startDate),
         end_date: formatDateString(endDate),
-        duration: 7,
+        duration: 1,
         progress: 0,
         parent: 0,
         kind_task: kind,
@@ -468,7 +479,8 @@ export function GanttChart({
         : currentTaskInfo;
 
       if (task.hyperlink) {
-        return `<a href="${task.hyperlink}" target="_blank">${displayText}</a>`;
+        const link = formatHyperlink(task.hyperlink);
+        return `<a href="${link}" target="_blank">${displayText}</a>`;
       }
       return displayText;
     };
@@ -482,7 +494,8 @@ export function GanttChart({
       const label = idPrefix ? `${idPrefix}${task.text}` : task.text;
 
       if (task.hyperlink) {
-        return `<a href="${task.hyperlink}" target="_blank">${label}</a>`;
+        const link = formatHyperlink(task.hyperlink);
+        return `<a href="${link}" target="_blank">${label}</a>`;
       }
       return label;
     };
@@ -913,7 +926,8 @@ export function GanttChart({
         const idPrefix = task.id ? `[${task.id}]` : '';
         const label = idPrefix ? `${idPrefix}${task.text}` : task.text;
         if (task.hyperlink) {
-          return `<a href="${task.hyperlink}" target="_blank">${label}</a>`;
+          const link = formatHyperlink(task.hyperlink);
+          return `<a href="${link}" target="_blank">${label}</a>`;
         }
         return label;
       };
@@ -936,7 +950,8 @@ export function GanttChart({
         } catch { }
         const displayText = parentInfo ? `${currentTaskInfo} > ${parentInfo}` : currentTaskInfo;
         if (task.hyperlink) {
-          return `<a href="${task.hyperlink}" target="_blank">${displayText}</a>`;
+          const link = formatHyperlink(task.hyperlink);
+          return `<a href="${link}" target="_blank">${displayText}</a>`;
         }
         return displayText;
       };
