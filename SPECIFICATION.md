@@ -66,7 +66,6 @@
 | --------- | ------------------------------------------------------- |
 | Task name | 展開アイコン(▼/▶) + タスクアイコン(📁/⏰) + タスク名（階層インデント付き）を**1列に統合** |
 | owner     | 担当者（自分/他/待）                                             |
-| add (+)   | 子タスク追加ボタン                                               |
   
 ※ DHMLXの`tree: true`設定により、展開アイコン・アイコン・名前・インデントが自動処理される
 ※ clone/copyは右クリックメニューで対応するため列には含めない
@@ -118,7 +117,7 @@
 | --------- | ----------------------------- | --------------------------- |
 | フレームワーク   | **React 18/19 + TypeScript**  | 型安全性、開発効率                   |
 | ビルドツール    | **Vite**                      | 高速HMR、軽量                    |
-| ガントチャート   | **@dhtmlx/trial-react-gantt** | 元リポジトリと同じDHTMLX、機能豊富        |
+| ガントチャート   | **dhtmlx-gantt** | 元リポジトリと同じDHTMLX、機能豊富        |
 | 右クリックメニュー | DHTMLX内蔵 + カスタム拡張             | DHTMLX Ganttは右クリックメニュー機能を内蔵 |
 | HTTP通信    | **axios** または **fetch**       |                             |
 | 状態管理      | **React Context**             | ダークモード、グローバル状態              |
@@ -202,8 +201,7 @@ FOREIGN KEY (target) REFERENCES tasks(id) ON DELETE CASCADE
 | PUT    | `/api/tasks/{id}`        | タスク更新      |
 | DELETE | `/api/tasks/{id}`        | タスク削除      |
 | POST   | `/api/tasks/{id}/clone`  | タスク複製      |
-| PUT    | `/api/tasks/{id}/move`   | タスク並び替え    |
-| PUT    | `/api/tasks/{id}/toggle` | 展開/折りたたみ切替 |
+| POST   | `/api/tasks/reorder`     | タスク並び替え（一括） |
   
 ### 検索・フィルター API
 
@@ -402,6 +400,12 @@ id,source,target,type
 - ユーザー設定のlocalStorage保存
 - スムーズなトランジション
   
+#### 4. 印刷モード (Print View)
+- ヘッダーを表示したまま、チャートエリアを最大化
+- グリッド（タスクリスト）を非表示
+- タスク名をバーの右側に表示（バー内は非表示）
+- 「今日」を中心とした表示に自動スクロール
+
 ```css
 :root {
 --bg-primary: #ffffff;
@@ -465,17 +469,17 @@ return false; // ブラウザデフォルトメニューを無効化
 src/
 ├── components/
 │ ├── GanttChart/
-│ │ ├── GanttChart.tsx # メインコンポーネント
-│ │ ├── TaskList.tsx # 左側タスクリスト
-│ │ ├── Timeline.tsx # 右側タイムライン
-│ │ ├── TaskBar.tsx # タスクバー
-│ │ └── ContextMenu.tsx # 右クリックメニュー
-│ ├── Header/
-│ │ ├── Header.tsx
-│ │ └── ThemeToggle.tsx
-│ └── common/
-│ ├── Button.tsx
-│ └── Modal.tsx
+│   │   ├── GanttChart.tsx        # メインコンポーネント（DHTMLX設定・描画）
+│   │   ├── ContextMenu.tsx       # 右クリックメニュー定義
+│   │   └── DateSettingModal.tsx  # 期間設定モーダル
+│   ├── Header/
+│   │   ├── Header.tsx            # ヘッダーツールバー
+│   │   ├── HamburgerMenu.tsx     # 設定用ハンバーガーメニュー
+│   │   ├── Header.css
+│   │   └── ThemeToggle.tsx       # (Header.tsx内に統合の場合あり)
+│   └── common/
+│       ├── Button.tsx
+│       └── Modal.tsx
 ├── contexts/
 │ ├── ThemeContext.tsx # ダークモード管理
 │ └── GanttContext.tsx # ガントデータ管理
@@ -488,8 +492,9 @@ src/
 ├── types/
 │ └── gantt.ts # 型定義
 └── styles/
-├── variables.css # CSS Variables
-└── gantt.css
+    ├── variables.css     # CSS Variables
+    ├── gantt.css
+    └── print.css         # 印刷モード用スタイル
 ```
 
 

@@ -32,7 +32,7 @@
 
 ## 技術スタック
 
-*   **Frontend**: React, TypeScript, Vite, DHTMLX Gantt (Trial/Standard)
+*   **Frontend**: React, TypeScript, Vite, dhtmlx-gantt
 *   **Backend**: FastAPI, SQLite, SQLAlchemy
 *   **Package Manager**: pnpm (Frontend), uv (Backend)
 
