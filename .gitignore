@@ -4,7 +4,6 @@ Thumbs.db
 
 # Node.js / Frontend
 node_modules/
-dist/
 build/
 .npm/
 npm-debug.log*
@@ -17,9 +16,7 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
-# frontend/dist/
-!frontend/dist/
-frontend/node_modules/
+# frontend/!frontend/frontend/node_modules/
 frontend/coverage/
 
 # Python / Backend
@@ -31,15 +28,13 @@ __pycache__/
 env/
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
 lib/
 lib64/
 parts/
-sdist/
-var/
+svar/
 wheels/
 *.egg-info/
 .installed.cfg
