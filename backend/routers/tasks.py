@@ -43,10 +43,23 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     duration = task.duration or calculate_duration(task.start_date, task.end_date)
 
-    # Get max sortorder for the parent
-    max_sortorder = db.query(TaskModel).filter(
-        TaskModel.parent == (task.parent or 0)
-    ).count()
+    parent_id = task.parent or 0
+    
+    # sortorderが負の値の場合は一番上に追加
+    if task.sortorder is not None and task.sortorder < 0:
+        # 同じparent内の全タスクのsortorderを+1して後ろにずらす
+        db.query(TaskModel).filter(TaskModel.parent == parent_id).update(
+            {TaskModel.sortorder: TaskModel.sortorder + 1}
+        )
+        new_sortorder = 0
+    elif task.sortorder is not None:
+        new_sortorder = task.sortorder
+    else:
+        # デフォルト: 末尾に追加
+        max_sortorder = db.query(TaskModel).filter(
+            TaskModel.parent == parent_id
+        ).count()
+        new_sortorder = max_sortorder
 
     db_task = TaskModel(
         text=task.text,
@@ -54,10 +67,10 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         end_date=task.end_date,
         duration=duration,
         progress=task.progress or 0.0,
-        parent=task.parent or 0,
+        parent=parent_id,
         kind_task=task.kind_task or 1,
         owner_id=task.owner_id or 0,
-        sortorder=task.sortorder if task.sortorder else max_sortorder,
+        sortorder=new_sortorder,
         color=task.color,
         textColor=task.textColor,
         ToDo=task.ToDo,

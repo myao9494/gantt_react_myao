@@ -86,6 +86,7 @@ export interface CreateTaskRequest {
   progress?: number;
   color?: string;
   memo?: string;
+  sortorder?: number;
 }
 
 /** タスク更新リクエスト */

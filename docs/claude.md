@@ -34,7 +34,12 @@
 
 *   **Frontend**: React, TypeScript, Vite, dhtmlx-gantt
 *   **Backend**: FastAPI, SQLite, SQLAlchemy
+*   **Backend**: FastAPI, SQLite, SQLAlchemy
 *   **Package Manager**: pnpm (Frontend), uv (Backend)
+
+## 開発環境URL
+*   **Frontend**: http://localhost:5172/
+
 
 ## ディレクトリ構成
 

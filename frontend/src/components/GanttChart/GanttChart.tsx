@@ -32,7 +32,8 @@ interface GanttChartProps {
   expandAllTrigger?: number;
   collapseAllTrigger?: number;
   onTaskUpdate?: (id: number, task: Partial<Task>) => void;
-  onTaskCreate?: (task: Partial<Task>) => void;
+  // タスク作成後に作成されたタスクを返す（ライトボックス表示用）
+  onTaskCreate?: (task: Partial<Task>) => Promise<Task | undefined>;
   onTaskDelete?: (id: number) => void;
   onTaskClone?: (id: number) => void;
   isPrintMode?: boolean;
@@ -210,8 +211,10 @@ export function GanttChart({
     [onTaskUpdate]
   );
 
+  // 子タスク/プロジェクト追加ハンドラ
+  // sortorder: -1 で親プロジェクトの一番上に追加、作成後にライトボックスを開く
   const handleAddChild = useCallback(
-    (parentId: number, kind: TaskKind) => {
+    async (parentId: number, kind: TaskKind) => {
       const today = new Date();
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + 1);
@@ -225,10 +228,20 @@ export function GanttChart({
         parent: parentId,
         kind_task: kind,
         owner_id: 0,
+        sortorder: -1, // 一番上に追加
       };
 
       if (onTaskCreate) {
-        onTaskCreate(newTask);
+        const createdTask = await onTaskCreate(newTask);
+        // 作成後にライトボックスを開く
+        if (createdTask && createdTask.id) {
+          // ganttにタスクが追加されるのを待つ
+          setTimeout(() => {
+            if (gantt.isTaskExists(createdTask.id)) {
+              gantt.showLightbox(createdTask.id);
+            }
+          }, 100);
+        }
       }
     },
     [onTaskCreate]
@@ -243,8 +256,10 @@ export function GanttChart({
     [onTaskClone]
   );
 
+  // 新規タスク/プロジェクト追加ハンドラ（空エリアから）
+  // sortorder: -1 で一番上に追加、作成後にライトボックスを開く
   const handleAddNewTask = useCallback(
-    (date: Date | null, kind: TaskKind) => {
+    async (date: Date | null, kind: TaskKind) => {
       const startDate = date || new Date();
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 1);
@@ -258,10 +273,20 @@ export function GanttChart({
         parent: 0,
         kind_task: kind,
         owner_id: 0,
+        sortorder: -1, // 一番上に追加
       };
 
       if (onTaskCreate) {
-        onTaskCreate(newTask);
+        const createdTask = await onTaskCreate(newTask);
+        // 作成後にライトボックスを開く
+        if (createdTask && createdTask.id) {
+          // ganttにタスクが追加されるのを待つ
+          setTimeout(() => {
+            if (gantt.isTaskExists(createdTask.id)) {
+              gantt.showLightbox(createdTask.id);
+            }
+          }, 100);
+        }
       }
     },
     [onTaskCreate]

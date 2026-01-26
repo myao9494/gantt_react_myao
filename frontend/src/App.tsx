@@ -77,7 +77,8 @@ function AppContent() {
     }
   };
 
-  const handleTaskCreate = async (taskData: Partial<Task>) => {
+  // タスク作成ハンドラ: 作成後にタスクデータを返し、リロードする
+  const handleTaskCreate = async (taskData: Partial<Task>): Promise<Task | undefined> => {
     const result = await api.createTask({
       text: taskData.text || '新規タスク',
       start_date: taskData.start_date || new Date().toISOString().split('T')[0] + ' 00:00:00',
@@ -85,10 +86,14 @@ function AppContent() {
       parent: taskData.parent,
       kind_task: taskData.kind_task,
       owner_id: taskData.owner_id,
+      sortorder: taskData.sortorder,
     });
     if (result.success && result.data) {
-      setTasks((prev) => [...prev, result.data!]);
+      // データをリロードして正しいソート順で表示
+      await fetchData();
+      return result.data;
     }
+    return undefined;
   };
 
   const handleTaskDelete = async (id: number) => {
