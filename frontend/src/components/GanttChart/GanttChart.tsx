@@ -102,10 +102,13 @@ export function GanttChart({
   const filterRef = useRef<TaskFilter | undefined>(filter);
   // onTaskUpdateをイベントハンドラ内で使用するためのref
   const onTaskUpdateRef = useRef(onTaskUpdate);
-  // onTaskUpdateが変更されたらrefを更新
+  // onTaskDeleteをイベントハンドラ内で使用するためのref
+  const onTaskDeleteRef = useRef(onTaskDelete);
+  // onTaskUpdate/onTaskDeleteが変更されたらrefを更新
   useEffect(() => {
     onTaskUpdateRef.current = onTaskUpdate;
-  }, [onTaskUpdate]);
+    onTaskDeleteRef.current = onTaskDelete;
+  }, [onTaskUpdate, onTaskDelete]);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -135,13 +138,33 @@ export function GanttChart({
     gantt.showLightbox(taskId);
   }, []);
 
+  // シフト+クリックで複数選択されたタスクを全て削除する
   const handleDeleteTask = useCallback(
     (taskId: number) => {
-      if (confirm('このタスクを削除しますか？')) {
-        if (onTaskDelete) {
-          onTaskDelete(taskId);
-        }
-        gantt.deleteTask(taskId);
+      // 複数選択されているかチェック
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const selectedTasks = (gantt as any).getSelectedTasks ? (gantt as any).getSelectedTasks() : [];
+
+      // 複数選択されていて、右クリックしたタスクが選択済みの場合は全て削除
+      const tasksToDelete: number[] =
+        selectedTasks.length > 1 && selectedTasks.map(String).includes(String(taskId))
+          ? selectedTasks.map(Number)
+          : [taskId];
+
+      const message = tasksToDelete.length > 1
+        ? `${tasksToDelete.length}件のタスクを削除しますか？`
+        : 'このタスクを削除しますか？';
+
+      if (confirm(message)) {
+        // 全ての選択タスクを削除
+        tasksToDelete.forEach((id) => {
+          if (onTaskDelete) {
+            onTaskDelete(id);
+          }
+          if (gantt.isTaskExists(id)) {
+            gantt.deleteTask(id);
+          }
+        });
       }
     },
     [onTaskDelete]
@@ -548,6 +571,43 @@ export function GanttChart({
       task.kind_task = '1';
       task.owner_id = 0;
       return true;
+    });
+
+    // Deleteキーで複数選択されたタスクを全て削除する
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    gantt.attachEvent('onBeforeTaskDelete', (id: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const selectedTasks = (gantt as any).getSelectedTasks ? (gantt as any).getSelectedTasks() : [];
+
+      // 複数選択されていて、削除対象が選択済みの場合
+      if (selectedTasks.length > 1 && selectedTasks.map(String).includes(String(id))) {
+        // 他の選択タスクも削除（APIとGantt両方）
+        selectedTasks.forEach((taskId: any) => {
+          const numId = Number(taskId);
+          if (String(taskId) !== String(id)) {
+            // APIで削除
+            if (onTaskDeleteRef.current) {
+              onTaskDeleteRef.current(numId);
+            }
+            // Ganttから削除（既存チェック付き）
+            if (gantt.isTaskExists(taskId)) {
+              gantt.deleteTask(taskId);
+            }
+          }
+        });
+
+        // このタスクもAPIで削除
+        if (onTaskDeleteRef.current) {
+          onTaskDeleteRef.current(Number(id));
+        }
+      } else {
+        // 単独削除の場合もAPIで削除
+        if (onTaskDeleteRef.current) {
+          onTaskDeleteRef.current(Number(id));
+        }
+      }
+
+      return true; // DHMLXにデフォルトの削除処理を続行させる
     });
 
     // Update edit_date on task update and save to backend
