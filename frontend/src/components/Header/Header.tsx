@@ -12,6 +12,7 @@ interface HeaderProps {
   onExportCSV: () => void;
   onImportCSV: (file: File) => void;
   onAutoMoveTasks: () => void;
+  onDiffCompare: () => void; // 差分比較
   timeScale: 'day' | 'month' | 'quarter' | 'year';
   onTimeScaleChange: (scale: 'day' | 'month' | 'quarter' | 'year') => void;
   displaySize: number;
@@ -30,6 +31,7 @@ export function Header({
   onExportCSV,
   onImportCSV,
   onAutoMoveTasks,
+  onDiffCompare,
   timeScale,
   onTimeScaleChange,
   displaySize,
@@ -147,6 +149,7 @@ export function Header({
           onAutoMoveTasks={onAutoMoveTasks}
           onReloadData={handleReloadData}
           onExportCSV={onExportCSV}
+          onDiffCompare={onDiffCompare}
           isPrintMode={isPrintMode}
           onPrintModeToggle={onPrintModeToggle}
           gridWidth={gridWidth}

@@ -9,6 +9,7 @@ interface HamburgerMenuProps {
     onAutoMoveTasks: () => void;
     onReloadData: () => void;
     onExportCSV: () => void;
+    onDiffCompare: () => void; // 差分比較
     isPrintMode: boolean;
     onPrintModeToggle: () => void;
     gridWidth: number;
@@ -23,6 +24,7 @@ export function HamburgerMenu({
     onAutoMoveTasks,
     onReloadData,
     onExportCSV,
+    onDiffCompare,
     isPrintMode,
     onPrintModeToggle,
     gridWidth,
@@ -150,6 +152,15 @@ export function HamburgerMenu({
                     >
                         <span className="icon">📥</span>
                         <span>CSVエクスポート</span>
+                    </button>
+
+                    <button
+                        className="menu-button"
+                        onClick={() => handleAction(onDiffCompare)}
+                        title="CSVファイルと現在のデータを比較"
+                    >
+                        <span className="icon">📊</span>
+                        <span>差分比較</span>
                     </button>
 
                     <div className="menu-divider"></div>

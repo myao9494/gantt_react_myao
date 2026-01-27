@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header/Header';
 import { GanttChart } from './components/GanttChart/GanttChart';
+import { DiffViewer } from './components/DiffViewer/DiffViewer';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import * as api from './services/api';
 import { getOwnerLabel, formatDateString } from './constants/gantt';
@@ -269,6 +270,13 @@ function AppContent() {
     setIsPrintMode((prev) => !prev);
   };
 
+  // Diff Compare Mode
+  const [showDiffViewer, setShowDiffViewer] = useState(false);
+
+  const handleDiffCompare = () => {
+    setShowDiffViewer(true);
+  };
+
   if (loading) {
     return (
       <div className={`app ${isPrintMode ? 'print-mode' : ''}`}>
@@ -280,6 +288,7 @@ function AppContent() {
           onExportCSV={handleExportCSV}
           onImportCSV={handleImportCSV}
           onAutoMoveTasks={handleAutoMoveTasks}
+          onDiffCompare={handleDiffCompare}
           timeScale={timeScale}
           onTimeScaleChange={setTimeScale}
           displaySize={displaySize}
@@ -306,6 +315,7 @@ function AppContent() {
         onExportCSV={handleExportCSV}
         onImportCSV={handleImportCSV}
         onAutoMoveTasks={handleAutoMoveTasks}
+        onDiffCompare={handleDiffCompare}
         timeScale={timeScale}
         onTimeScaleChange={setTimeScale}
         displaySize={displaySize}
@@ -349,6 +359,14 @@ function AppContent() {
       >
         {taskListCollapsed ? '▶' : '◀'}
       </button>
+
+      {/* Diff Viewer Modal */}
+      {showDiffViewer && (
+        <DiffViewer
+          currentTasks={tasks}
+          onClose={() => setShowDiffViewer(false)}
+        />
+      )}
     </div>
   );
 }
