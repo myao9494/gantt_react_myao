@@ -19,7 +19,7 @@ const COMPARE_FIELDS: (keyof Task)[] = [
     'color',
     'memo',
     'hyperlink',
-    'sortorder',
+    // 'sortorder' は差分比較の対象外
 ];
 
 /** フィールド名の日本語ラベル */
@@ -35,7 +35,7 @@ export const FIELD_LABELS: Record<string, string> = {
     color: '色',
     memo: 'メモ',
     hyperlink: 'リンク',
-    sortorder: '並び順',
+    // sortorder は差分比較対象外のため省略
 };
 
 /**
@@ -55,8 +55,8 @@ function normalizeValue(value: unknown, fieldName: string): string {
         return '';
     }
 
-    // 数値フィールドの正規化
-    const numericFields = ['duration', 'progress', 'parent', 'kind_task', 'owner_id', 'sortorder'];
+    // 数値フィールドの正規化（sortorderは差分比較対象外のため除く）
+    const numericFields = ['duration', 'progress', 'parent', 'kind_task', 'owner_id'];
     if (numericFields.includes(fieldName)) {
         const num = parseFloat(strValue);
         if (!isNaN(num)) {
