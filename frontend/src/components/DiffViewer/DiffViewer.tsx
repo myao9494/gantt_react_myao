@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import type { Task } from '../../types/gantt';
-import type { DiffResult } from '../../types/diff';
+import type { DiffResult, TaskDiff } from '../../types/diff';
 import { compareTasks, parseCSVToTasks } from '../../utils/diffUtils';
 import './DiffViewer.css';
 
@@ -24,6 +24,7 @@ export function DiffViewer({ currentTasks, onClose }: DiffViewerProps) {
     const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
     const [fileTasks, setFileTasks] = useState<Task[]>([]); // CSVから読み込んだタスクを保持
     const [excludeDateFields, setExcludeDateFields] = useState<boolean>(true); // デフォルトで日付を除外
+    const [searchText, setSearchText] = useState<string>(''); // 検索テキスト
 
     // ファイル選択ハンドラ
     const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,26 +61,58 @@ export function DiffViewer({ currentTasks, onClose }: DiffViewerProps) {
         }
     }, [currentTasks, fileTasks]);
 
-    // タブに応じた表示データ
+    /**
+     * 検索キーワードによるフィルタリング
+     * 半角・全角スペースで区切り、AND検索を実行
+     */
+    const filterBySearch = useCallback((tasks: TaskDiff[]) => {
+        if (!searchText.trim()) return tasks;
+
+        // 半角スペースと全角スペースで分割
+        const keywords = searchText
+            .split(/[\s　]+/)
+            .map(k => k.toLowerCase().trim())
+            .filter(k => k.length > 0);
+
+        if (keywords.length === 0) return tasks;
+
+        return tasks.filter(diff => {
+            const taskText = diff.task.text?.toLowerCase() || '';
+            const taskId = String(diff.task.id);
+            const taskMemo = diff.task.memo?.toLowerCase() || '';
+            const searchTarget = `${taskText} ${taskId} ${taskMemo}`;
+
+            // すべてのキーワードがマッチする場合のみtrue（AND検索）
+            return keywords.every(keyword => searchTarget.includes(keyword));
+        });
+    }, [searchText]);
+
+    // タブに応じた表示データ（検索フィルタ適用）
     const displayTasks = useMemo(() => {
         if (!diffResult) return [];
 
+        let tasks;
         switch (activeTab) {
             case 'added':
-                return diffResult.added;
+                tasks = diffResult.added;
+                break;
             case 'deleted':
-                return diffResult.deleted;
+                tasks = diffResult.deleted;
+                break;
             case 'modified':
-                return diffResult.modified;
+                tasks = diffResult.modified;
+                break;
             case 'all':
             default:
-                return [
+                tasks = [
                     ...diffResult.added,
                     ...diffResult.deleted,
                     ...diffResult.modified,
                 ];
         }
-    }, [diffResult, activeTab]);
+
+        return filterBySearch(tasks);
+    }, [diffResult, activeTab, filterBySearch]);
 
     // 詳細展開トグル
     const toggleExpand = (id: number) => {
@@ -213,6 +246,32 @@ export function DiffViewer({ currentTasks, onClose }: DiffViewerProps) {
                                     変更 ({diffResult.summary.modifiedCount})
                                 </button>
                             </div>
+
+                            {/* 検索ボックス */}
+                            <div className="diff-search">
+                                <span className="search-icon">🔍</span>
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="タスク名・ID・メモで検索（スペース区切りでAND検索）"
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                />
+                                {searchText && (
+                                    <button
+                                        className="search-clear"
+                                        onClick={() => setSearchText('')}
+                                        title="検索をクリア"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                            {searchText && (
+                                <div className="search-result-info">
+                                    {displayTasks.length} 件の結果
+                                </div>
+                            )}
 
                             {/* 差分リスト */}
                             <div className="diff-list">
